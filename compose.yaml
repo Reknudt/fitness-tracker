@@ -1,1 +1,37 @@
 services:
+  workout-db:
+    image: postgres:16
+    container_name: workout-db
+    restart: always
+    environment:
+      POSTGRES_USER: workout
+      POSTGRES_PASSWORD: workout
+      POSTGRES_DB: workout_db
+    ports:
+      - "5441:5432"
+    volumes:
+      - workout_data:/var/lib/postgresql/data
+
+  workout-service:
+    build:
+#      context: ./workout-service
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8091:8080"
+    container_name: workout-service-cmps
+    restart: always
+    depends_on:
+      - workout-db
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://workout-db:5432/workout_db
+      SPRING_DATASOURCE_USERNAME: workout
+      SPRING_DATASOURCE_PASSWORD: workout
+      SPRING_FLYWAY_ENABLED: "true"
+#      SERVER_PORT: 8091
+
+#      JWT_PUBLIC_KEY: ""
+#      JWT_SECRET: "dev-secret"
+
+volumes:
+  workout_data:
