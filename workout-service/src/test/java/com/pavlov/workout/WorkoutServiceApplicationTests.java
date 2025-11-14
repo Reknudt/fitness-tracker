@@ -1,4 +1,4 @@
-package com.pavlov.workout_service;
+package com.pavlov.workout;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
