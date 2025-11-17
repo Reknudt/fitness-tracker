@@ -1,5 +1,7 @@
 package com.pavlov.workout.entity;
 
+import com.pavlov.workout.model.ActivityType;
+import com.pavlov.workout.model.PlanType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -31,13 +33,13 @@ public class Workout extends AbstractEntity {
     @Digits(integer = 5, fraction = 2)
     private BigDecimal calories;
 
-//    @NotNull
-//    @Enumerated(EnumType.ORDINAL)
-//    private ActivityType activityType;    //todo add enums
+    @NotNull
+    @Enumerated(EnumType.ORDINAL)
+    private ActivityType activityType;
 
-//    @NotNull
-//    @Enumerated(EnumType.ORDINAL)
-//    private PlanType planType;
+    @NotNull
+    @Enumerated(EnumType.ORDINAL)
+    private PlanType planType;
 
     private LocalDateTime planedAt;
 

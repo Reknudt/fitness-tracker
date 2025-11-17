@@ -1,0 +1,15 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: workout-service
+  datasource:
+    url: jdbc:postgresql://localhost:5441/workout_db
+    username: workout
+    password: workout
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jpa:
+    show-sql: true

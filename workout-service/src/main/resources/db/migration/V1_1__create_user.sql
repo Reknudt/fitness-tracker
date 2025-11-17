@@ -1,4 +1,4 @@
-CREATE TABLE user (
+CREATE TABLE "user" (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     first_name varchar(63) NOT NULL,
     middle_name varchar(63) NOT NULL,

@@ -23,6 +23,7 @@
 		<java.version>25</java.version>
         <postgresql.version>42.7.8</postgresql.version>
         <flyway.version>11.17.0</flyway.version>
+        <postgresql.flyway.version>10.21.0</postgresql.flyway.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -38,6 +39,12 @@
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-core</artifactId>
             <version>${flyway.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+            <version>${postgresql.flyway.version}</version>
+            <scope>runtime</scope>
         </dependency>
 
 <!--		<dependency>-->
