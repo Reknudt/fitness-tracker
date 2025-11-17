@@ -13,3 +13,10 @@ spring:
     locations: classpath:db/migration
   jpa:
     show-sql: true
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+    org.postgresql.jdbc: TRACE
+    org.postgresql.sql: DEBUG
