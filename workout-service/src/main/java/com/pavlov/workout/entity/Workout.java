@@ -12,8 +12,6 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -45,7 +43,6 @@ public class Workout extends AbstractEntity {
 
     private LocalDateTime planedAt;
 
-    @JdbcTypeCode(SqlTypes.INTERVAL_SECOND)
     private Duration duration;
 
     @Size(max = 255)

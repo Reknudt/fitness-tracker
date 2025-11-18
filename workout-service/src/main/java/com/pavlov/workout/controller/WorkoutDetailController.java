@@ -63,7 +63,7 @@ public class WorkoutDetailController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Update WorkoutDetail")
+    @Operation(summary = "Delete WorkoutDetail")
     @ResponseStatus(NO_CONTENT)
     public void deleteWorkoutDetail(@PathVariable long id) {
         if (workoutDetailService.notExist(id))

@@ -6,7 +6,6 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 
-import java.sql.Time;
 import java.time.Duration;
 
 @Getter
