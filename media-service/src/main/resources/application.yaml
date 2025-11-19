@@ -1,3 +1,6 @@
+server:
+  port: 8062
+
 spring:
   application:
     name: media-service
@@ -8,3 +11,9 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+minio:
+  url: http://localhost:9000
+  accessKey: minio
+  secretKey: minio123
+  bucket: fitness-tracker

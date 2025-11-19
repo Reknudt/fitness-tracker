@@ -16,11 +16,18 @@
 
     <properties>
         <java.version>25</java.version>
+        <minio.version>8.6.0</minio.version>
     </properties>
     <dependencies>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>${minio.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>4.12.0</version> <!-- Or a later compatible version -->
         </dependency>
     </dependencies>
 
