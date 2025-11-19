@@ -12,11 +12,24 @@ services:
     volumes:
       - workout_data:/var/lib/postgresql/data
 
+  media-db:
+    image: postgres:16
+    container_name: media-db
+    restart: always
+    environment:
+      POSTGRES_USER: media
+      POSTGRES_PASSWORD: media
+      POSTGRES_DB: media_db
+    ports:
+      - "5442:5432"
+    volumes:
+      - media_data:/var/lib/postgresql/data
+
   workout-service:
     build:
 #      context: ./workout-service
       context: .
-      dockerfile: Dockerfile
+      dockerfile: workout-service/Dockerfile
     ports:
       - "8091:8080"
     container_name: workout-service-cmps
@@ -33,5 +46,34 @@ services:
 #      JWT_PUBLIC_KEY: ""
 #      JWT_SECRET: "dev-secret"
 
+  media-service:
+    build:
+      context: .
+      dockerfile: media-service/Dockerfile
+    ports:
+      - "8092:8080"
+    container_name: media-service
+    depends_on:
+      - media-db
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://media-db:5432/media_db
+      SPRING_DATASOURCE_USERNAME: media
+      SPRING_DATASOURCE_PASSWORD: media
+
+  minio:
+    image: minio/minio
+    container_name: minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"   # S3 API endpoint
+      - "9001:9001"   # Web UI
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    volumes:
+      - minio_data:/data
+
 volumes:
   workout_data:
+  media_data:
+  minio_data:

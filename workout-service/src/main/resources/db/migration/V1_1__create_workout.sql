@@ -1,6 +1,6 @@
 CREATE TABLE workout (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    user_id bigint NOT NULL REFERENCES "user"(id),
+    user_id bigint NOT NULL, -- REFERENCES "user"(id),
     name varchar(63) NOT NULL,
     calories numeric (5, 2) NOT NULL CHECK (calories >= 0),
     activity_type int NOT NULL CHECK (activity_type IN (1, 2, 3)) , -- 1 aerobic, 2 anaerobic, 3 hybrid
