@@ -23,7 +23,11 @@
 		<java.version>25</java.version>
         <postgresql.version>42.7.8</postgresql.version>
         <flyway.version>11.17.0</flyway.version>
-	</properties>
+        <postgresql.flyway.version>10.21.0</postgresql.flyway.version>
+<!--        check version-->
+        <springdoc-webmvc-ui.version>2.8.9</springdoc-webmvc-ui.version>
+        <!--        check version-->
+    </properties>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -38,6 +42,32 @@
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-core</artifactId>
             <version>${flyway.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+            <version>${postgresql.flyway.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc-webmvc-ui.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.mockito</groupId>
+                    <artifactId>mockito-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.mockito</groupId>
+                    <artifactId>mockito-junit-jupiter</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
 <!--		<dependency>-->
