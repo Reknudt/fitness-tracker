@@ -1,3 +1,10 @@
 spring:
   application:
     name: media-service
+  datasource:
+    url: jdbc:postgresql://localhost:5442/media_db
+    username: media
+    password: media
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
