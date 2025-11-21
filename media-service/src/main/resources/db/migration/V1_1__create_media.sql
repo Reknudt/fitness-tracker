@@ -6,4 +6,5 @@ CREATE TABLE media (
     size BIGINT NOT NULL,
     storage_key VARCHAR(255) NOT NULL, -- путь в S3 / MinIO
     uploaded_at TIMESTAMP DEFAULT now()
+    -- status
 );

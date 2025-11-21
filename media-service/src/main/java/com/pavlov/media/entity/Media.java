@@ -9,11 +9,13 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Getter
 @Entity
+@NoArgsConstructor
 public class Media {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,4 +41,12 @@ public class Media {
     private String storageKey;
 
     private LocalDateTime uploadedAt;
+
+    public Media(long userId, String fileName, String contentType, Long size, String storageKey) {
+        this.userId = userId;
+        this.fileName = fileName;
+        this.contentType = contentType;
+        this.size = size;
+        this.storageKey = storageKey;
+    }
 }

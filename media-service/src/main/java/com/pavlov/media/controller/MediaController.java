@@ -1,9 +1,8 @@
 package com.pavlov.media.controller;
 
+import com.pavlov.media.entity.Media;
 import com.pavlov.media.service.MediaService;
-import com.pavlov.media.service.MinioComponent;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,8 +10,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
+import java.io.IOException;
 
 @RequiredArgsConstructor
 @RestController
@@ -21,25 +19,18 @@ public class MediaController {
 
     private final MediaService mediaService;
 
-    @Autowired
-    private MinioComponent minioComponent;
+//    @Autowired
+//    private MediaService minioComponent;
 
-    @PostMapping("/upload")
-    public String uploadFileToMinIO(@RequestParam("file") MultipartFile file) {
-        try {
-            InputStream in = new ByteArrayInputStream(file.getBytes());
-            String fileName = file.getOriginalFilename();
-            minioComponent.putObject(fileName, in);
-            return "File uploaded.";
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return "Something wrong.";
+    @GetMapping()
+    public String downloadFile(@RequestParam("fileName") String fileName) {
+        return mediaService.getObject(fileName);
     }
 
-    @GetMapping("/download")
-    public String downloadFile() throws Exception {
-        return minioComponent.getObject("file.txt");
+    @PostMapping("/upload")
+    public Media uploadFileToMinIO(@RequestParam("file") MultipartFile file) throws IOException {
+        long userId = 1;    //todo change after user-service integration
+        return mediaService.saveFile(userId, file);
     }
 
 }
