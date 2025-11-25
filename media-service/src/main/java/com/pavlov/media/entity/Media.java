@@ -40,7 +40,7 @@ public class Media {
     @Size(max = 255)
     private String storageKey;
 
-    private LocalDateTime uploadedAt;
+    private LocalDateTime uploadedAt  = LocalDateTime.now();;
 
     public Media(long userId, String fileName, String contentType, Long size, String storageKey) {
         this.userId = userId;

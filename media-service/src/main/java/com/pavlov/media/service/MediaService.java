@@ -2,6 +2,7 @@ package com.pavlov.media.service;
 
 import com.pavlov.media.entity.Media;
 import com.pavlov.media.repository.MediaRepository;
+import io.minio.DownloadObjectArgs;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
@@ -11,11 +12,13 @@ import io.minio.errors.InternalException;
 import io.minio.errors.InvalidResponseException;
 import io.minio.errors.ServerException;
 import io.minio.errors.XmlParserException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.RequestToViewNameTranslator;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -32,23 +35,28 @@ public class MediaService {
     @Autowired
     private MinioClient minioClient;
 
+    private final RequestToViewNameTranslator requestToViewNameTranslator;
+
     @Value("${minio.bucket}")
     private String bucketName;
 
+    @Transactional
     public Media saveFile(long userId, MultipartFile file) throws IOException {
         InputStream in = new ByteArrayInputStream(file.getBytes());
         String fileName = file.getOriginalFilename();
-        putObject(fileName, in);
-
-        return mediaRepository.save(new Media(userId, fileName, file.getContentType(), file.getSize(), ""));    // todo check chat gpt for more detailed solution
+        Media saved = mediaRepository.save(new Media(userId, fileName, file.getContentType(), file.getSize(), bucketName));
+        putObject(saved.getId().toString(), in);
+        return saved;
     }
 
-    public String getObject(String fileName) {
+    public String readObjectById(long id) {
+//        String fileName = mediaRepository.getFileNameById(id).orElseThrow(() -> new RuntimeException("File not found"));
         try (InputStream stream = minioClient
                 .getObject(GetObjectArgs.builder()
                         .bucket(bucketName)
-                        .object(fileName)
-                        .build());) {
+                        .object(String.valueOf(id))
+                        .build());
+        ) {
             return new String(stream.readAllBytes());
         } catch (ErrorResponseException | InsufficientDataException |
                  InternalException | InvalidKeyException | InvalidResponseException |
@@ -57,6 +65,28 @@ public class MediaService {
             e.printStackTrace();
         }
         return "You haven't uploaded anything yet.";
+    }
+
+    public void downloadObjectById(long id) {
+//        String fileName = mediaRepository.findFileNameById(id).orElseThrow(() -> new RuntimeException("File not found"));
+        Media media = mediaRepository.findById(id).orElseThrow(() -> new RuntimeException("File not found"));
+        try {
+            minioClient.downloadObject(DownloadObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(String.valueOf(id))
+                    .overwrite(true)
+                    .filename(media.getStorageKey())
+                    .build());
+        } catch (ErrorResponseException | InsufficientDataException |
+                 InternalException | InvalidKeyException | InvalidResponseException |
+                 IOException | NoSuchAlgorithmException | ServerException |
+                 XmlParserException | IllegalArgumentException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Media getMetaDataById(long id) {
+        return mediaRepository.findById(id).orElseThrow(() -> new RuntimeException("File not found"));
     }
 
     private void putObject(String fileName, InputStream inputStream) {
