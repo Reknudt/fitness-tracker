@@ -17,3 +17,84 @@ minio:
   accessKey: minio
   secretKey: minio123
   bucket: fitness-tracker
+
+keycloak:
+  server-url: http://localhost:8089
+  realm: master
+  client-id: admin-cli
+  username: admin
+  password: admin
+  target-realm: scassets
+
+  # Предопределённые роли
+  predefined-roles:
+    auto-create: true  # Автоматически создавать при запуске
+    roles:
+#      # Картотека документов
+#      - name: DOCUMENT_VIEW
+#        description: Просмотр картотеки документов
+#      - name: DOCUMENT_CREATE
+#        description: Создание документов
+#      - name: DOCUMENT_EDIT
+#        description: Редактирование документов
+#      - name: DOCUMENT_DELETE
+#        description: Удаление документов
+#      - name: DOCUMENT_PROCESS
+#        description: Обработка документов (изменение статусов)
+      # Материалы на складе
+      - name: STORAGE_CARD_VIEW
+        description: Просмотр материалов на складе
+      - name: STORAGE_CARD_EDIT
+        description: Изменение карточки материала
+      - name: STORAGE_CARD_CLOSE
+        description: Закрытие карточки материала
+#      # Материалы в подотчёте
+#      - name: STORAGE_CARD_ACCOUNTABLE_VIEW
+#        description: Просмотр материалов в подотчёте
+#      # Типы форм документов
+#      - name: DOCUMENT_TYPES_VIEW
+#        description: Просмотр типов форм документов
+#      - name: DOCUMENT_TYPES_EDIT
+#        description: Изменение типов форм документов
+#      # Справочник контрагентов
+#      - name: CONTRACTORS_VIEW
+#        description: Просмотр справочника контрагентов
+#      - name: CONTRACTORS_EDIT
+#        description: Изменение справочника контрагентов
+#      - name: CONTRACTORS_MATCH
+#        description: Сопоставление записей контрагентов
+#      - name: CONTRACTORS_SYNC
+#        description: Синхронизация контрагентов с внешними системами
+#      # Пользователи
+#      - name: USERS_VIEW
+#        description: Просмотр пользователей
+#      - name: USERS_EDIT
+#        description: Изменение пользователей
+#      - name: USERS_SYNC
+#        description: Синхронизация пользователей с внешними системами
+#      # Счётчики
+#      - name: COUNTERS_VIEW
+#        description: Просмотр счётчиков
+#      - name: COUNTERS_EDIT
+#        description: Изменение счётчиков
+#      # Настройки
+#      - name: SETTINGS_VIEW
+#        description: Просмотр настроек
+#      - name: SETTINGS_EDIT
+#        description: Изменение настроек
+
+    # Композитные роли (необязательно)
+    composite-roles:
+#      - name: DOCUMENT_MANAGER
+#        description: Менеджер документов
+#        included-roles:
+#          - DOCUMENT_VIEW
+#          - DOCUMENT_CREATE
+#          - DOCUMENT_EDIT
+#          - DOCUMENT_PROCESS
+      - name: STORAGE_MANAGER
+        description: Менеджер склада
+        included-roles:
+          - STORAGE_CARD_VIEW
+          - STORAGE_CARD_EDIT
+          - STORAGE_CARD_ACCOUNTABLE_VIEW

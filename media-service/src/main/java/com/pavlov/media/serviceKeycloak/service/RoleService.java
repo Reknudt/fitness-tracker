@@ -1,5 +1,6 @@
 package com.pavlov.media.serviceKeycloak.service;
 
+import com.pavlov.media.serviceKeycloak.PredefinedRolesConfig;
 import com.pavlov.media.serviceKeycloak.request.RoleRequest;
 import jakarta.ws.rs.NotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -23,6 +25,61 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 public class RoleService {
 
     private final RolesResource rolesResource;
+    private final PredefinedRolesConfig rolesConfig;
+
+    public List<PredefinedRolesConfig.RoleConfig> getPredefinedRoleConfigs() {
+        return rolesConfig.getRoles();
+    }
+
+    public List<PredefinedRolesConfig.CompositeRoleConfig> getPredefinedCompositeRoleConfigs() {
+        return rolesConfig.getCompositeRoles();
+    }
+
+    public void createMissingPredefinedRoles() {
+        for (PredefinedRolesConfig.RoleConfig roleConfig : rolesConfig.getRoles()) {
+            if (!roleExists(roleConfig.getName())) {
+                RoleRequest request = new RoleRequest();
+                request.setName(roleConfig.getName());
+                request.setDescription(roleConfig.getDescription());
+                request.setComposite(false);
+
+                createRole(request);
+                log.info("Created missing predefined role: {}", roleConfig.getName());
+            }
+        }
+
+        for (PredefinedRolesConfig.CompositeRoleConfig compositeConfig : rolesConfig.getCompositeRoles()) {
+            if (!roleExists(compositeConfig.getName())) {
+                RoleRequest request = new RoleRequest();
+                request.setName(compositeConfig.getName());
+                request.setDescription(compositeConfig.getDescription());
+                request.setComposite(true);
+                request.setCompositeRoles(compositeConfig.getIncludedRoles());
+
+                createRole(request);
+                log.info("Created missing composite role: {}", compositeConfig.getName());
+            }
+        }
+    }
+
+    // Метод для получения предопределённых ролей по категории
+    public List<RoleRepresentation> getPredefinedRolesByCategory(String category) {
+        // Можно добавить логику фильтрации по категориям
+        // Например, по префиксам: DOCUMENT_, MATERIALS_, DIRECTORY_, etc.
+        return rolesConfig.getRoles().stream()
+                .filter(role -> role.getName().startsWith(category.toUpperCase() + "_"))
+                .map(role -> {
+                    try {
+                        return rolesResource.get(role.getName()).toRepresentation();
+                    } catch (NotFoundException e) {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    // ---------------------------
 
     public List<RoleRepresentation> getAllRoles() {
         return rolesResource.list();

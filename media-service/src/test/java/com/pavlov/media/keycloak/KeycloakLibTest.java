@@ -14,6 +14,7 @@ import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.GroupRepresentation;
+import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 
@@ -38,6 +39,8 @@ public class KeycloakLibTest {
     private static final String USERNAME = "admin";
     private static final String PASSWORD = "admin";
 
+    private final String TEST_REALM = "test-realm";
+
     @BeforeAll
     static void setUp() {
         keycloak = KeycloakBuilder.builder()
@@ -48,9 +51,24 @@ public class KeycloakLibTest {
                 .password(PASSWORD)
                 .build();
 
-        realmResource = keycloak.realm("depo-clone");
+        realmResource = keycloak.realm("demo-realm");
         rolesResource = realmResource.roles();
         usersResource = realmResource.users();
+    }
+
+    @Test
+    void createRealm() {
+        RealmRepresentation newRealm = new RealmRepresentation();
+        newRealm.setRealm(TEST_REALM);
+        newRealm.setEnabled(true);
+        newRealm.setDisplayName("My Test Realm");
+        newRealm.setLoginWithEmailAllowed(false);
+
+        // Установка времени жизни токенов (важно для MicroProfile JWT)
+        newRealm.setAccessTokenLifespan(300); // 5 минут
+        newRealm.setSsoSessionMaxLifespan(36000); // 10 часов
+
+        keycloak.realms().create(newRealm);
     }
 
     @Test
@@ -153,17 +171,75 @@ public class KeycloakLibTest {
 //        rolesResource.deleteRole(baseRole2);
     }
 
-//    @Test
-//    void createUser() {
-//        UserRepresentation user = new UserRepresentation();
-//        user.setUsername("TEST-USER");
-//        user.setEmail("TESTUSER@test.com");
-//        user.setEnabled(true);
-//        user.setAttributes(Map.of("fullname", List.of("d1"), "position", List.of("tester")));
+    @Test
+    void createUser() {
+        //----- 1 block, create user
+
+        UserRepresentation user = new UserRepresentation();
+        String username = "test-user";
+        user.setUsername(username);
+        user.setEmail("TESTUSER@test.com");
+        user.setEnabled(true);
+        user.setAttributes(Map.of("fullname", List.of("d1"), "position", List.of("tester")));
+        user.setRequiredActions(List.of("UPDATE_PASSWORD"));
+
+        Response response = usersResource.create(user);
+        assertEquals(201, response.getStatus());
+
+        // --------- 2 block, find that user
+
+        List<UserRepresentation> users = usersResource.search(username);
+        assertEquals(username, users.getFirst().getUsername());
+
+        String userId = users.getFirst().getId();
+        UserResource userResource = usersResource.get(userId);
+
+        // ---------- 3 block, set temporary password
+
+        CredentialRepresentation credential = new CredentialRepresentation();
+        credential.setType(CredentialRepresentation.PASSWORD);
+        String tempPass = "123";
+        credential.setValue(tempPass);
+        credential.setTemporary(true);
+
+        userResource.resetPassword(credential);
+
+        // ----------- 4 block, set require action UPDATE PASSWORD
+
+        UserRepresentation userUpdate = userResource.toRepresentation();
+        userUpdate.setRequiredActions(List.of("UPDATE_PASSWORD"));
+        userResource.update(userUpdate);
+
+        // now authenticate and refresh password
+
+        // Act & Assert - проверяем аутентификацию
+//        try {
+//            // Попытка получить токен через KeycloakBuilder
+//            Keycloak userKeycloak = KeycloakBuilder.builder()
+//                    .serverUrl(SERVER_URL)
+//                    .realm(REALM)
+//                    .clientId(CLIENT_ID)
+//                    .username(username)
+//                    .password(tempPass)
+//                    .build();
 //
-//        Response response = usersResource.create(user);
-//        assertEquals(201, response.getStatus());
-//    }
+//            // Эта строка может вести себя по-разному в зависимости от конфигурации
+//            AccessTokenResponse tokenResponse = userKeycloak.tokenManager().getAccessToken();
+//
+//            // Если мы получили токен - проверяем REQUIRED_ACTION
+//            System.out.println("Token получен: " + tokenResponse.getToken());
+//
+//            // Проверяем что REQUIRED_ACTION все еще установлен
+//            UserRepresentation currentUser = userResource.toRepresentation();
+//            assertTrue(currentUser.getRequiredActions().contains("UPDATE_PASSWORD"),
+//                    "UPDATE_PASSWORD should still be required");
+//
+//        } catch (Exception e) {
+//            // Или получаем исключение - зависит от конфигурации Keycloak
+//            System.out.println("Аутентификация отклонена: " + e.getMessage());
+//            assertTrue(e.getMessage().contains("401") || e.getMessage().contains("temporary"));
+//        }
+    }
 
     @Test
     void assignRoleToUser() {
@@ -215,7 +291,7 @@ public class KeycloakLibTest {
 //        assertNotNull(userId);
 
 
-        // Устанавливаем пароль
+        // Устанавливаем пароль     ---
         UserRepresentation userRepresentation = usersResource.search(username).getFirst();
         UserResource userResource = usersResource.get(userRepresentation.getId());
 
@@ -225,7 +301,7 @@ public class KeycloakLibTest {
         credential.setTemporary(false);
         userResource.resetPassword(credential);
 
-        // Проверяем создание
+//         Проверяем создание
         UserRepresentation createdUser = userResource.toRepresentation();
         assertEquals(username, createdUser.getUsername());
         assertEquals(email, createdUser.getEmail());
@@ -345,10 +421,10 @@ public class KeycloakLibTest {
         RoleRepresentation role = rolesResource.get(roleName).toRepresentation();
 
         // Назначаем роль
-        userResource.roles().realmLevel().add(Arrays.asList(role));
+        userResource.roles().realmLevel().add(Collections.singletonList(role));
 
         // Удаляем роль
-        userResource.roles().realmLevel().remove(Arrays.asList(role));
+        userResource.roles().realmLevel().remove(Collections.singletonList(role));
 
         // Проверяем удаление
         List<RoleRepresentation> userRoles = userResource.roles().realmLevel().listAll();
@@ -362,6 +438,15 @@ public class KeycloakLibTest {
     }
 
     //  -------------
+
+    @Test
+    public void createUser1() {
+        UserRepresentation user = new UserRepresentation();
+        user.setUsername("test");
+        user.setEnabled(true);
+        user.setAttributes(Map.of("startedOn", List.of("2024-02-23")));
+        usersResource.create(user);
+    }
 
     private String createUser(String username, String password) {
         UserRepresentation user = new UserRepresentation();

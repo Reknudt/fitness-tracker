@@ -38,7 +38,7 @@ public class RealmClientSetupTest {
             assertNotNull(keycloakSetupService.findClientByClientId(clientsResource));
         } finally {
             RealmResource realmResource = keycloak.realm(REALM);
-//            realmResource.remove();
+            realmResource.remove();
         }
     }
 

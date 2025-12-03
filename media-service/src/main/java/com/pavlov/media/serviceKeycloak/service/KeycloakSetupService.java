@@ -1,6 +1,5 @@
 package com.pavlov.media.serviceKeycloak.service;
 
-import jakarta.transaction.Transactional;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
@@ -25,7 +24,7 @@ public class KeycloakSetupService {
     private final String REALM = "scassets";
     private final String CLIENT = "scassets-client";
 
-    @Transactional
+    //@Transactional      // todo test
     public Response createRealmWithClient() {
         RealmRepresentation realmRepresentation = new RealmRepresentation();
         realmRepresentation.setRealm(REALM);

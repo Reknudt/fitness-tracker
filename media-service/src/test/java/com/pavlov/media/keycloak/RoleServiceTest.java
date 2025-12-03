@@ -1,5 +1,6 @@
 package com.pavlov.media.keycloak;
 
+import com.pavlov.media.serviceKeycloak.PredefinedRolesConfig;
 import com.pavlov.media.serviceKeycloak.request.RoleRequest;
 import com.pavlov.media.serviceKeycloak.service.RoleService;
 import org.junit.jupiter.api.DisplayName;
@@ -19,6 +20,8 @@ class RoleServiceTest {
 
     @Autowired
     private RoleService roleService;
+    @Autowired
+    private PredefinedRolesConfig roleConfig;
 
     private String generateUniqueRoleName(String prefix) {
         return prefix + "_" + UUID.randomUUID().toString().substring(0, 8);
@@ -229,7 +232,7 @@ class RoleServiceTest {
         RoleRequest request = new RoleRequest();
         request.setName(roleName);
         request.setDescription("Role with attributes");
-        request.setAttributes(Map.of("department", List.of("IT"),"accessLevel", List.of("high")));
+        request.setAttributes(Map.of("department", List.of("IT"), "accessLevel", List.of("high")));
 
         try {
             roleService.createRole(request);
@@ -258,7 +261,7 @@ class RoleServiceTest {
         try {
             // Update request with attributes
             RoleRequest updateRequest = new RoleRequest();
-            updateRequest.setAttributes(Map.of("updatedField", List.of("newValue"),"category", List.of("premium")));
+            updateRequest.setAttributes(Map.of("updatedField", List.of("newValue"), "category", List.of("premium")));
 
             roleService.updateRole(roleName, updateRequest);
 
@@ -273,13 +276,49 @@ class RoleServiceTest {
 
     // Helper method for safe cleanup
     private void safeDeleteRole(String roleName) {
+        roleService.deleteRole(roleName);
+    }
+
+    //----------------------------- test predefined roles
+
+    @Test
+    @DisplayName("Should create predefined roles and verify it exists")
+    void createPredefinedRoles_ShouldCreateRoles() {
         try {
-            if (roleService.roleExists(roleName)) {
-                roleService.deleteRole(roleName);
+            roleService.createMissingPredefinedRoles();
+            for (PredefinedRolesConfig.CompositeRoleConfig compositeConfig : roleConfig.getCompositeRoles()) {
+                assertTrue(roleService.roleExists(compositeConfig.getName()));
             }
-        } catch (Exception e) {
-            // Ignore cleanup errors - tests should handle their own assertions
-            System.err.println("Cleanup warning: Failed to delete role " + roleName + ": " + e.getMessage());
+            for (PredefinedRolesConfig.RoleConfig simpleRoleConfig : roleConfig.getRoles()) {
+                assertTrue(roleService.roleExists(simpleRoleConfig.getName()));
+            }
+        } finally {
+            deleteCreatedPredefinedRoles_ShouldDeletePredefinedRoles();
         }
     }
+
+    @Test
+    @DisplayName("Should delete predefined roles")
+    void deleteCreatedPredefinedRoles_ShouldDeletePredefinedRoles() {
+        for (PredefinedRolesConfig.CompositeRoleConfig compositeConfig : roleConfig.getCompositeRoles()) {
+            roleService.deleteRole(compositeConfig.getName());
+        }
+        for (PredefinedRolesConfig.RoleConfig simpleRoleConfig : roleConfig.getRoles()) {
+            roleService.deleteRole(simpleRoleConfig.getName());
+        }
+    }
+
+    @Test
+    @DisplayName("Should print predefined roles' names")
+    void getPredefinedRoles() {
+        List<PredefinedRolesConfig.RoleConfig> predefinedRoleConfigs = roleService.getPredefinedRoleConfigs();
+        for (PredefinedRolesConfig.RoleConfig predefinedRoleConfig : predefinedRoleConfigs) {
+            System.out.println("Roles: " + predefinedRoleConfig.getName() + " ---\n");
+        }
+        List<PredefinedRolesConfig.CompositeRoleConfig> predefinedCompositeRoleConfigs = roleService.getPredefinedCompositeRoleConfigs();
+        for (PredefinedRolesConfig.CompositeRoleConfig predefinedCompositeRoleConfig : predefinedCompositeRoleConfigs) {
+            System.out.println("Roles composite: " + predefinedCompositeRoleConfig.getName() + " ---\n");
+        }
+    }
+
 }
