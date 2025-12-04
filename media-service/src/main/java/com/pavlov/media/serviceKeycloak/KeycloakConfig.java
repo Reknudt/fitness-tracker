@@ -54,8 +54,7 @@ public class KeycloakConfig {
     }
 
     @Bean
-    public RealmResource realmResource(Keycloak keycloak,
-                                       @Value("${keycloak.target-realm:scassets}") String targetRealm) {
+    public RealmResource realmResource(Keycloak keycloak, @Value("${keycloak.target-realm:scassets}") String targetRealm) {
         return keycloak.realm(targetRealm);
     }
 
@@ -114,8 +113,7 @@ public class KeycloakConfig {
                                 try {
                                     return rolesResource.get(roleName).toRepresentation();
                                 } catch (NotFoundException ex) {
-                                    log.warn("Role '{}' not found for composite role '{}'",
-                                            roleName, compositeConfig.getName());
+                                    log.warn("Role '{}' not found for composite role '{}'", roleName, compositeConfig.getName());
                                     return null;
                                 }
                             })
@@ -124,8 +122,7 @@ public class KeycloakConfig {
 
                     if (!includedRoles.isEmpty()) {
                         newCompositeRole.addComposites(includedRoles);
-                        log.info("Added {} roles to composite role '{}'",
-                                includedRoles.size(), compositeConfig.getName());
+                        log.info("Added {} roles to composite role '{}'", includedRoles.size(), compositeConfig.getName());
                     }
                 }
             }

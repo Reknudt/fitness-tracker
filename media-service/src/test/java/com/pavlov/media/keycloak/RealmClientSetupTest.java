@@ -76,4 +76,11 @@ public class RealmClientSetupTest {
         }
     }
 
+//    @Test
+    @DisplayName("Remove REALM, optional test")
+    void removeRealm() {
+        RealmResource realmResource = keycloak.realm(REALM);
+        realmResource.remove();
+    }
+
 }

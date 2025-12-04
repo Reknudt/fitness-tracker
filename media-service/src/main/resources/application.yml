@@ -11,6 +11,8 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  jpa:
+    show-sql: true
 
 minio:
   url: http://localhost:9000
@@ -26,9 +28,9 @@ keycloak:
   password: admin
   target-realm: scassets
 
-  # Предопределённые роли
+
   predefined-roles:
-    auto-create: true  # Автоматически создавать при запуске
+    auto-create: false  # set true for role creation during program start
     roles:
 #      # Картотека документов
 #      - name: DOCUMENT_VIEW
@@ -98,3 +100,16 @@ keycloak:
           - STORAGE_CARD_VIEW
           - STORAGE_CARD_EDIT
           - STORAGE_CARD_ACCOUNTABLE_VIEW
+
+#  security:
+#    oauth2:
+#      resourceserver:
+#        jwt:
+#          issuer-uri: http://localhost:8089/realms/depo-clone
+
+#logging:
+#  level:
+#    org.hibernate.SQL: DEBUG
+#    org.hibernate.orm.jdbc.bind: TRACE
+#    org.postgresql.jdbc: TRACE
+#    org.postgresql.sql: DEBUG

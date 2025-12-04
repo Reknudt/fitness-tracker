@@ -1,8 +1,8 @@
 package com.pavlov.media.serviceKeycloak.service;
 
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
-import org.jetbrains.annotations.NotNull;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.ClientsResource;
 import org.keycloak.admin.client.resource.RealmResource;
@@ -24,7 +24,6 @@ public class KeycloakSetupService {
     private final String REALM = "scassets";
     private final String CLIENT = "scassets-client";
 
-    //@Transactional      // todo test
     public Response createRealmWithClient() {
         RealmRepresentation realmRepresentation = new RealmRepresentation();
         realmRepresentation.setRealm(REALM);
@@ -50,17 +49,16 @@ public class KeycloakSetupService {
         }
     }
 
-    @NotNull
     private ClientRepresentation getClientRepresentation() {
         ClientRepresentation clientRepresentation = new ClientRepresentation();
         clientRepresentation.setClientId(CLIENT);
         clientRepresentation.setPublicClient(true);
         clientRepresentation.setDirectAccessGrantsEnabled(true);
-        clientRepresentation.setDefaultClientScopes(List.of("web-origins", "acr", "profile", "roles", "user-profile-attributes", "microprofile-jwt", "basic", "email"));    //too brute
-        clientRepresentation.setOptionalClientScopes(List.of("address", "phone", "organization", "offline_access"));    //too brute ?
+        clientRepresentation.setDefaultClientScopes(List.of("web-origins", "acr", "profile", "roles", "user-profile-attributes", "microprofile-jwt", "basic", "email"));
+        clientRepresentation.setOptionalClientScopes(List.of("address", "phone", "organization", "offline_access"));
         clientRepresentation.setRedirectUris(List.of("*"));
         clientRepresentation.setWebOrigins(List.of("*"));
-        clientRepresentation.setAttributes(Map.of("post.logout.redirect.uris","+"));
+        clientRepresentation.setAttributes(Map.of("post.logout.redirect.uris", "+"));
         return clientRepresentation;
     }
 
@@ -76,7 +74,11 @@ public class KeycloakSetupService {
 
     //set to private
     public ClientRepresentation findClientByClientId(ClientsResource clientsResource) {
-        List<ClientRepresentation> clients = clientsResource.findByClientId(CLIENT);
-        return clients.isEmpty() ? null : clients.getFirst();
+        try {
+            List<ClientRepresentation> clients = clientsResource.findByClientId(CLIENT);
+            return clients.isEmpty() ? null : clients.getFirst();
+        } catch (NotFoundException e) {
+            return null;
+        }
     }
 }
