@@ -1,14 +1,14 @@
 package com.pavlov.media.serviceKeycloak;
 
-import jakarta.ws.rs.NotFoundException;
+import com.pavlov.media.serviceKeycloak.service.KeycloakSetupService;
+import com.pavlov.media.serviceKeycloak.service.RoleService;
+import com.pavlov.media.serviceKeycloak.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.admin.client.resource.RealmResource;
-import org.keycloak.admin.client.resource.RoleResource;
 import org.keycloak.admin.client.resource.RolesResource;
 import org.keycloak.admin.client.resource.UsersResource;
-import org.keycloak.representations.idm.RoleRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -17,28 +17,36 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
 @Configuration
 @Slf4j
+//@RequiredArgsConstructor    //
 @EnableConfigurationProperties(PredefinedRolesConfig.class)
 public class KeycloakConfig {
 
-    @Value("${keycloak.server-url:http://localhost:8089}")
+//    private final KeycloakSetupService keycloakSetupService;
+//    private final UserService userService;
+//    private final String REALM = "scassets";
+//    private final String CLIENT = "scassets-client";
+
+    @Value("${keycloak.target.realm}")
+    private String targetRealm;
+
+    @Value("${keycloak.target.client}")
+    private String targetClient;
+
+    @Value("${keycloak.server-url}")
     private String serverUrl;
 
-    @Value("${keycloak.realm:master}")
+    @Value("${keycloak.realm}")
     private String realm;
 
-    @Value("${keycloak.client-id:admin-cli}")
+    @Value("${keycloak.client-id}")
     private String clientId;
 
-    @Value("${keycloak.username:admin}")
+    @Value("${keycloak.username}")
     private String username;
 
-    @Value("${keycloak.password:admin}")
+    @Value("${keycloak.password}")
     private String password;
 
     @Bean
@@ -54,7 +62,7 @@ public class KeycloakConfig {
     }
 
     @Bean
-    public RealmResource realmResource(Keycloak keycloak, @Value("${keycloak.target-realm:scassets}") String targetRealm) {
+    public RealmResource realmResource(Keycloak keycloak, @Value("${keycloak.target.realm}") String targetRealm) {
         return keycloak.realm(targetRealm);
     }
 
@@ -69,65 +77,42 @@ public class KeycloakConfig {
     }
 
     @Bean
-    @ConditionalOnProperty(name = "keycloak.predefined-roles.auto-create", havingValue = "true")
-    public CommandLineRunner initializePredefinedRoles(PredefinedRolesConfig rolesConfig, RolesResource rolesResource, @Value("${keycloak.target-realm:scassets}") String targetRealm) {
+    @ConditionalOnProperty(name = "keycloak.auto-create", havingValue = "true")
+    public CommandLineRunner initializePredefinedRealm(PredefinedRolesConfig rolesConfig) {
         return args -> {
-            log.info("Initializing predefined roles for realm: {}", targetRealm);
-            for (PredefinedRolesConfig.RoleConfig roleConfig : rolesConfig.getRoles()) {
-                try {
-                    rolesResource.get(roleConfig.getName()).toRepresentation();
-                    log.debug("Role '{}' already exists, skipping", roleConfig.getName());
-                } catch (NotFoundException e) {
-                    RoleRepresentation role = new RoleRepresentation();
-                    role.setName(roleConfig.getName());
-                    role.setDescription(roleConfig.getDescription());
-                    rolesResource.create(role);
-                    log.info("Created predefined role: {}", roleConfig.getName());
-                }
-            }
 
-            // Создаём композитные роли
-            for (PredefinedRolesConfig.CompositeRoleConfig compositeConfig : rolesConfig.getCompositeRoles()) {
-                try {
-                    // Проверяем, существует ли уже композитная роль
-                    RoleResource existingRole = rolesResource.get(compositeConfig.getName());
-                    RoleRepresentation existing = existingRole.toRepresentation();
+            log.info("Starting Keycloak environment initialization");
 
-                    if (existing.isComposite()) {
-                        log.debug("Composite role '{}' already exists, skipping", compositeConfig.getName());
-                        continue;
-                    }
-                } catch (NotFoundException e) {
-                    // Композитная роль не существует - создаём
-                    RoleRepresentation compositeRole = new RoleRepresentation();
-                    compositeRole.setName(compositeConfig.getName());
-                    compositeRole.setDescription(compositeConfig.getDescription());
-                    compositeRole.setComposite(true);
-                    rolesResource.create(compositeRole);
-                    log.info("Created composite role: {}", compositeConfig.getName());
+            // Создаём временный экземпляр Keycloak для инициализации
+            Keycloak initKeycloak = KeycloakBuilder.builder()
+                    .serverUrl(serverUrl)
+                    .realm(realm)
+                    .clientId(clientId)
+                    .username(username)
+                    .password(password)
+                    .build();
 
-                    // Добавляем вложенные роли
-                    RoleResource newCompositeRole = rolesResource.get(compositeConfig.getName());
-                    List<RoleRepresentation> includedRoles = compositeConfig.getIncludedRoles().stream()
-                            .map(roleName -> {
-                                try {
-                                    return rolesResource.get(roleName).toRepresentation();
-                                } catch (NotFoundException ex) {
-                                    log.warn("Role '{}' not found for composite role '{}'", roleName, compositeConfig.getName());
-                                    return null;
-                                }
-                            })
-                            .filter(Objects::nonNull)
-                            .collect(Collectors.toList());
+            KeycloakSetupService setupService = new KeycloakSetupService(initKeycloak);
+            UserService userService = new UserService(usersResource(initKeycloak.realm(targetRealm)), rolesResource(initKeycloak.realm(realm)));
+            RoleService roleService = new RoleService(rolesResource(initKeycloak.realm(targetRealm)), rolesConfig);
 
-                    if (!includedRoles.isEmpty()) {
-                        newCompositeRole.addComposites(includedRoles);
-                        log.info("Added {} roles to composite role '{}'", includedRoles.size(), compositeConfig.getName());
-                    }
-                }
-            }
-
-            log.info("Predefined roles initialization completed");
+            initializeEnvironment(setupService, userService, roleService, rolesConfig);
         };
+    }
+
+    private void initializeEnvironment(KeycloakSetupService setupService, UserService userService, RoleService roleService, PredefinedRolesConfig rolesConfig) {
+        if (setupService.realmExists()) {
+            log.info("Predefined realm: {} exists ", targetRealm);
+        } else {
+            log.info("Initializing predefined realm: {}", targetRealm);
+            setupService.createRealmWithClient();
+
+            log.info("Initializing predefined roles for realm: {}", targetRealm);
+            roleService.createPredefinedRoles();
+
+            log.info("Initializing default user 'root' for realm: {}", targetRealm);
+            userService.createDefaultUser();
+        }
+
     }
 }

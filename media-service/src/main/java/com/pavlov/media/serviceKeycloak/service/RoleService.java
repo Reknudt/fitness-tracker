@@ -42,12 +42,10 @@ public class RoleService {
                 request.setName(roleConfig.getName());
                 request.setDescription(roleConfig.getDescription());
                 request.setComposite(false);
-
                 createRole(request);
                 log.info("Created missing predefined role: {}", roleConfig.getName());
             }
         }
-
         for (PredefinedRolesConfig.CompositeRoleConfig compositeConfig : rolesConfig.getCompositeRoles()) {
             if (!roleExists(compositeConfig.getName())) {
                 RoleRequest request = new RoleRequest();
@@ -55,28 +53,83 @@ public class RoleService {
                 request.setDescription(compositeConfig.getDescription());
                 request.setComposite(true);
                 request.setCompositeRoles(compositeConfig.getIncludedRoles());
-
                 createRole(request);
                 log.info("Created missing composite role: {}", compositeConfig.getName());
             }
         }
     }
 
-    // Метод для получения предопределённых ролей по категории
-    public List<RoleRepresentation> getPredefinedRolesByCategory(String category) {
-        // Можно добавить логику фильтрации по категориям
-        // Например, по префиксам: DOCUMENT_, MATERIALS_, DIRECTORY_, etc.
-        return rolesConfig.getRoles().stream()
-                .filter(role -> role.getName().startsWith(category.toUpperCase() + "_"))
-                .map(role -> {
-                    try {
-                        return rolesResource.get(role.getName()).toRepresentation();
-                    } catch (NotFoundException e) {
-                        return null;
-                    }
-                })
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+//    // Метод для получения предопределённых ролей по категории
+//    public List<RoleRepresentation> getPredefinedRolesByCategory(String category) {
+//        // Можно добавить логику фильтрации по категориям
+//        // Например, по префиксам: DOCUMENT_, MATERIALS_, DIRECTORY_, etc.
+//        return rolesConfig.getRoles().stream()
+//                .filter(role -> role.getName().startsWith(category.toUpperCase() + "_"))
+//                .map(role -> {
+//                    try {
+//                        return rolesResource.get(role.getName()).toRepresentation();
+//                    } catch (NotFoundException e) {
+//                        return null;
+//                    }
+//                })
+//                .filter(Objects::nonNull)
+//                .collect(Collectors.toList());
+//    }
+
+    public void createPredefinedRoles() {
+        for (PredefinedRolesConfig.RoleConfig roleConfig : rolesConfig.getRoles()) {
+            try {
+                rolesResource.get(roleConfig.getName()).toRepresentation();
+                log.debug("Role '{}' already exists, skipping", roleConfig.getName());
+            } catch (NotFoundException e) {
+                RoleRepresentation role = new RoleRepresentation();
+                role.setName(roleConfig.getName());
+                role.setDescription(roleConfig.getDescription());
+                rolesResource.create(role);
+                log.info("Created predefined role: {}", roleConfig.getName());
+            }
+        }
+
+        // Создаём композитные роли
+        for (PredefinedRolesConfig.CompositeRoleConfig compositeConfig : rolesConfig.getCompositeRoles()) {
+            try {
+                // Проверяем, существует ли уже композитная роль
+                RoleResource existingRole = rolesResource.get(compositeConfig.getName());
+                RoleRepresentation existing = existingRole.toRepresentation();
+
+                if (existing.isComposite()) {
+                    log.debug("Composite role '{}' already exists, skipping", compositeConfig.getName());
+                    continue;
+                }
+            } catch (NotFoundException e) {
+                // Композитная роль не существует - создаём
+                RoleRepresentation compositeRole = new RoleRepresentation();
+                compositeRole.setName(compositeConfig.getName());
+                compositeRole.setDescription(compositeConfig.getDescription());
+                compositeRole.setComposite(true);
+                rolesResource.create(compositeRole);
+                log.info("Created composite role: {}", compositeConfig.getName());
+
+                // Добавляем вложенные роли
+                RoleResource newCompositeRole = rolesResource.get(compositeConfig.getName());
+                List<RoleRepresentation> includedRoles = compositeConfig.getIncludedRoles().stream()
+                        .map(roleName -> {
+                            try {
+                                return rolesResource.get(roleName).toRepresentation();
+                            } catch (NotFoundException ex) {
+                                log.warn("Role '{}' not found for composite role '{}'", roleName, compositeConfig.getName());
+                                return null;
+                            }
+                        })
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList());
+
+                if (!includedRoles.isEmpty()) {
+                    newCompositeRole.addComposites(includedRoles);
+                    log.info("Added {} roles to composite role '{}'", includedRoles.size(), compositeConfig.getName());
+                }
+            }
+        }
     }
 
     // ---------------------------

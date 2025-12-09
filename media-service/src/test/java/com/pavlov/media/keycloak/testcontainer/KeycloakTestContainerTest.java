@@ -4,7 +4,6 @@ import com.pavlov.media.serviceKeycloak.PredefinedRolesConfig;
 import com.pavlov.media.serviceKeycloak.service.KeycloakSetupService;
 import com.pavlov.media.serviceKeycloak.service.RoleService;
 import com.pavlov.media.serviceKeycloak.service.UserService;
-import jakarta.ws.rs.core.Response;
 import org.junit.jupiter.api.Test;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.ClientsResource;
@@ -21,8 +20,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
 
-import static jakarta.ws.rs.core.Response.Status.CREATED;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -71,15 +68,22 @@ public class KeycloakTestContainerTest {
     }
 
     @Test
+    void initTest() {
+        assertTrue(keycloakSetupService.realmExists());
+
+    }
+
+    @Test
     void createRealmAndClientAndRoles_ShouldCreateAndVerify() {
         assertFalse(keycloakSetupService.realmExists());
-        try (Response response = keycloakSetupService.createRealmWithClient()) {
-            assertEquals(CREATED.getStatusCode(), response.getStatus());
+//        try (Response response = keycloakSetupService.createRealmWithClient()) {
+        keycloakSetupService.createRealmWithClient();
+//            assertEquals(CREATED.getStatusCode(), response.getStatus());
             assertTrue(keycloakSetupService.realmExists());
             RealmResource realmResource = keycloak.realm(REALM);
             ClientsResource clientsResource = realmResource.clients();
             assertNotNull(keycloakSetupService.findClientByClientId(clientsResource));
-        }
+//        }
         List<RoleRepresentation> allRealmRoles = roleService.getAllRoles();
         List<PredefinedRolesConfig.RoleConfig> predefinedRoleConfigs = roleService.getPredefinedRoleConfigs();
         List<String> predefinedNames = predefinedRoleConfigs.stream().map(PredefinedRolesConfig.RoleConfig::getName).toList();

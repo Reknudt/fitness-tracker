@@ -7,6 +7,7 @@ import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.ClientsResource;
 import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.representations.idm.ClientRepresentation;
+import org.keycloak.representations.idm.ClientScopeRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -24,20 +25,28 @@ public class KeycloakSetupService {
     private final String REALM = "scassets";
     private final String CLIENT = "scassets-client";
 
-    public Response createRealmWithClient() {
+    public void createRealmWithClient() {
         RealmRepresentation realmRepresentation = new RealmRepresentation();
         realmRepresentation.setRealm(REALM);
         realmRepresentation.setEnabled(true);
-//        realmRepresentation.setDefaultDefaultClientScopes(List.of("web-origins", "acr", "profile", "role_list", "microprofile-jwt", "basic", "email"));    //not working
-        if (!realmExists()) {
-            keycloak.realms().create(realmRepresentation);
-        } else {
-            keycloak.realms().realm(REALM).update(realmRepresentation);
-        }
-        return configureClient();
+        keycloak.realms().realm(REALM).update(realmRepresentation);
+        configureClient();
     }
 
-    private Response configureClient() {
+    private void setRealmScopeMicroproflieToDefault() {
+        List<ClientScopeRepresentation> optionalClientScopeRepresentations = keycloak.realms().realm(REALM).getDefaultOptionalClientScopes();
+
+        String microprofileScopeId = optionalClientScopeRepresentations.stream()
+                .filter(s -> "microprofile-jwt".equals(s.getName()))
+                .findFirst()
+                .map(ClientScopeRepresentation::getId)
+                .orElseThrow(() -> new RuntimeException("Scope not found: " + "microprofile-jwt"));     //
+
+        keycloak.realms().realm(REALM).removeDefaultOptionalClientScope(microprofileScopeId);
+        keycloak.realms().realm(REALM).addDefaultDefaultClientScope(microprofileScopeId);
+    }
+
+    private void configureClient() {
         RealmResource realmResource = keycloak.realm(REALM);
         ClientsResource clientsResource = realmResource.clients();
         ClientRepresentation existingClient = findClientByClientId(clientsResource);
@@ -45,7 +54,7 @@ public class KeycloakSetupService {
             throw new ResponseStatusException(CONFLICT, "Client already set up");
         ClientRepresentation clientRepresentation = getClientRepresentation();
         try (Response response = realmResource.clients().create(clientRepresentation)) {
-            return response;
+//            response;
         }
     }
 
@@ -61,6 +70,41 @@ public class KeycloakSetupService {
         clientRepresentation.setAttributes(Map.of("post.logout.redirect.uris", "+"));
         return clientRepresentation;
     }
+
+//    public List<String> getRealmDefaultScopeIds(String realmName) {
+//        RealmResource realm = keycloak.realm(realmName);
+//        RealmRepresentation realmRep = realm.toRepresentation();
+//        return realmRep.getDefaultDefaultClientScopes();
+//    }
+
+    /*public void addScopeToRealmDefaults(String realmName, String scopeName) {
+        RealmResource realm = keycloak.realm(realmName);
+
+        RealmRepresentation realmRep = realm.toRepresentation();
+        List<String> currentDefaultIds = realmRep.getDefaultDefaultClientScopes();
+
+        if (currentDefaultIds == null) {
+            currentDefaultIds = new ArrayList<>();
+        }
+
+        // Добавляем ID нового scope'а
+        String scopeId = getScopeId(realmName, scopeName);
+        if (!currentDefaultIds.contains(scopeId)) {
+            currentDefaultIds.add(scopeId);
+            realmRep.setDefaultDefaultClientScopes(currentDefaultIds);
+            realm.update(realmRep);
+            System.out.println("Added " + scopeName + " to realm default scopes via RealmRepresentation");
+        }
+    }
+
+    private String getScopeId(String realmName, String scopeName) {
+        RealmResource realm = keycloak.realm(realmName);
+        return realm.clientScopes().findAll().stream()
+                .filter(s -> scopeName.equals(s.getName()))
+                .findFirst()
+                .map(ClientScopeRepresentation::getId)
+                .orElseThrow(() -> new RuntimeException("Scope not found: " + scopeName));
+    }*/
 
     // set to private
     public boolean realmExists() {

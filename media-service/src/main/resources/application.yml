@@ -26,80 +26,99 @@ keycloak:
   client-id: admin-cli
   username: admin
   password: admin
-  target-realm: scassets
+  target.realm: scassets
+  target.client: scassets-client
 
+  auto-create: true  # set true for role creation during program start
 
   predefined-roles:
-    auto-create: false  # set true for role creation during program start
     roles:
-#      # Картотека документов
-#      - name: DOCUMENT_VIEW
-#        description: Просмотр картотеки документов
-#      - name: DOCUMENT_CREATE
-#        description: Создание документов
-#      - name: DOCUMENT_EDIT
-#        description: Редактирование документов
-#      - name: DOCUMENT_DELETE
-#        description: Удаление документов
-#      - name: DOCUMENT_PROCESS
-#        description: Обработка документов (изменение статусов)
-      # Материалы на складе
-      - name: STORAGE_CARD_VIEW
-        description: Просмотр материалов на складе
-      - name: STORAGE_CARD_EDIT
-        description: Изменение карточки материала
-      - name: STORAGE_CARD_CLOSE
-        description: Закрытие карточки материала
-#      # Материалы в подотчёте
-#      - name: STORAGE_CARD_ACCOUNTABLE_VIEW
-#        description: Просмотр материалов в подотчёте
-#      # Типы форм документов
-#      - name: DOCUMENT_TYPES_VIEW
-#        description: Просмотр типов форм документов
-#      - name: DOCUMENT_TYPES_EDIT
-#        description: Изменение типов форм документов
-#      # Справочник контрагентов
-#      - name: CONTRACTORS_VIEW
-#        description: Просмотр справочника контрагентов
-#      - name: CONTRACTORS_EDIT
-#        description: Изменение справочника контрагентов
-#      - name: CONTRACTORS_MATCH
-#        description: Сопоставление записей контрагентов
-#      - name: CONTRACTORS_SYNC
-#        description: Синхронизация контрагентов с внешними системами
-#      # Пользователи
-#      - name: USERS_VIEW
-#        description: Просмотр пользователей
-#      - name: USERS_EDIT
-#        description: Изменение пользователей
-#      - name: USERS_SYNC
-#        description: Синхронизация пользователей с внешними системами
-#      # Счётчики
-#      - name: COUNTERS_VIEW
-#        description: Просмотр счётчиков
-#      - name: COUNTERS_EDIT
-#        description: Изменение счётчиков
-#      # Настройки
-#      - name: SETTINGS_VIEW
-#        description: Просмотр настроек
-#      - name: SETTINGS_EDIT
-#        description: Изменение настроек
+      # About
+      - name: formulas_edit
+      - name: roles_view
+      - name: pool_view
+      # Account
+      - name: accounts_view
+      - name: accounts_edit
+      # Car
+      - name: cars_view
+      - name: cars_edit
+      # Contractor
+      - name: contractors_view
+      - name: contractors_edit
+      # Counter
+      - name: counters_view
+      - name: counters_edit
+      # Division
+      - name: divisions_view
+      - name: divisions_edit
+      # DocAction
+      - name: docactions_view
+      - name: docationss_edit
+      # DocType
+      - name: doctypes_view
+      - name: doctypes_edit
+      # Document
+      - name: documents_view
+      - name: documents_edit
+      - name: documents_process
+      # Driver
+      - name: drivers_view
+      - name: drivers_edit
+      # HistoryLog
+      - name: logs_view
+      # Init
+      - name: settings_view
+      - name: settings_edit
+      # Location
+      - name: locations_view
+      - name: locations_edit
+      # Measure
+      - name: measures_view
+      - name: measures_edit
+      # Metal
+      - name: metals_view
+      - name: metals_edit
+      # MetalGroup
+      - name: metalgroups_view
+      - name: metalgroups_edit
+      # Nomenclature
+      - name: nomenclatures_view
+      - name: nomenclatures_edit
+      # NomenclatureGroup
+      - name: nomenclaturegroups_view
+      - name: nomenclaturegroups_edit
+      # OperationType
+      - name: operationtypes_view
+      - name: operationtypes_edit
+      # Person
+      - name: people_view
+      - name: people_edit
+      # Storage
+      - name: storages_view
+      - name: storages_edit
+      # StorageCard
+      - name: storagecards_view
+      - name: storageaccountable_view       #
+      - name: storagecards_edit
 
     # Композитные роли (необязательно)
     composite-roles:
-#      - name: DOCUMENT_MANAGER
-#        description: Менеджер документов
-#        included-roles:
-#          - DOCUMENT_VIEW
-#          - DOCUMENT_CREATE
-#          - DOCUMENT_EDIT
-#          - DOCUMENT_PROCESS
-      - name: STORAGE_MANAGER
-        description: Менеджер склада
+      - name: documents_manager
         included-roles:
-          - STORAGE_CARD_VIEW
-          - STORAGE_CARD_EDIT
-          - STORAGE_CARD_ACCOUNTABLE_VIEW
+          - documents_view
+          - documents_edit
+          - documents_process
+
+
+logging:
+  level:
+#    org.apache.http.impl.execchain.MainClientExec: INFO
+
+#    org.apache.http.wire: DEBUG  # Логирует все HTTP запросы/ответы
+    org.apache.http.headers: DEBUG  # Логирует заголовки
+#    org.keycloak.admin.client: DEBUG  # Логи Keycloak клиента
+#    org.jboss.resteasy.client: DEBUG  # RESTEasy клиент
 
 #  security:
 #    oauth2:

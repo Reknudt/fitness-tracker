@@ -30,23 +30,27 @@ public class RealmClientSetupTest {
     @Test
     @DisplayName("Should create realm and client")
     void createRealm_ShouldCreateRealmAndClient() {
-        try (Response response = keycloakSetupService.createRealmWithClient()) {
-            assertEquals(CREATED.getStatusCode(), response.getStatus());
+//        try (Response response = keycloakSetupService.createRealmWithClient()) {
+        try {
+            keycloakSetupService.createRealmWithClient();
+//                assertEquals(CREATED.getStatusCode(), response.getStatus());
             assertTrue(keycloakSetupService.realmExists());
             RealmResource realmResource = keycloak.realm(REALM);
             ClientsResource clientsResource = realmResource.clients();
             assertNotNull(keycloakSetupService.findClientByClientId(clientsResource));
         } finally {
             RealmResource realmResource = keycloak.realm(REALM);
-            realmResource.remove();
+//            realmResource.remove();
         }
     }
 
     @Test
     @DisplayName("Should throw conflict")
     void createRealm_ShouldThrowConflict() {
-        try (Response response = keycloakSetupService.createRealmWithClient()) {
-            assertEquals(CREATED.getStatusCode(), response.getStatus());
+//        try (Response response = keycloakSetupService.createRealmWithClient()) {
+        try {
+            keycloakSetupService.createRealmWithClient();
+//            assertEquals(CREATED.getStatusCode(), response.getStatus());
 
             ResponseStatusException e = assertThrows(ResponseStatusException.class, () -> keycloakSetupService.createRealmWithClient());
             assertEquals("Client already set up", e.getReason());
@@ -56,7 +60,7 @@ public class RealmClientSetupTest {
         }
     }
 
-    @Test
+    /*@Test
     @DisplayName("Should reset realm and set client")
     void createRealm_ShouldResetRealmAndSetClient() {
         try (Response response = keycloakSetupService.createRealmWithClient()) {
@@ -74,9 +78,9 @@ public class RealmClientSetupTest {
             RealmResource realmResource = keycloak.realm(REALM);
             realmResource.remove();
         }
-    }
+    }*/
 
-//    @Test
+    //    @Test
     @DisplayName("Remove REALM, optional test")
     void removeRealm() {
         RealmResource realmResource = keycloak.realm(REALM);

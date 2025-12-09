@@ -31,7 +31,7 @@ class RoleServiceTest {
     @DisplayName("Should create new role and verify it exists")
     void createRole_WithValidData_ShouldCreateRole() {
         // Arrange
-        String roleName = generateUniqueRoleName("TEST_ROLE");
+        String roleName = generateUniqueRoleName("TEST_ROLE_1");
         RoleRequest request = new RoleRequest();
         request.setName(roleName);
         request.setDescription("Test role description");
@@ -46,7 +46,7 @@ class RoleServiceTest {
             assertEquals(roleName, createdRole.getName());
             assertEquals("Test role description", createdRole.getDescription());
         } finally {
-            safeDeleteRole(roleName);
+//            safeDeleteRole(roleName);
         }
     }
 
@@ -61,6 +61,10 @@ class RoleServiceTest {
         try {
             roleService.createRole(request);
             List<RoleRepresentation> roles = roleService.getAllRoles();
+
+            for (RoleRepresentation role : roles) {
+                System.out.println("roles: " + role);
+            }
 
             assertNotNull(roles);
             assertFalse(roles.isEmpty());

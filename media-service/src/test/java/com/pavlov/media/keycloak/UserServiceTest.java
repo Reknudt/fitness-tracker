@@ -6,6 +6,7 @@ import com.pavlov.media.serviceKeycloak.service.RoleService;
 import com.pavlov.media.serviceKeycloak.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,9 @@ class UserServiceTest {
     @Autowired
     private RoleService roleService;
 
+    @Autowired
+    private UsersResource usersResource;
+
     private String generateUniqueUsername(String prefix) {
         return prefix + "_" + UUID.randomUUID().toString().substring(0, 8);
     }
@@ -37,11 +41,12 @@ class UserServiceTest {
     @Test
     @DisplayName("Should create user and verify it exists")
     void createUser_WithValidData_ShouldCreateUser() {
-        String username = generateUniqueUsername("testuser");
+        String username = generateUniqueUsername("user2");
         UserRequest request = new UserRequest();
         request.setUsername(username);
         request.setEmail(username + "@example.com");
-        request.setAttributes(Map.of("fullname", List.of("fullname test")));
+        request.setAttributes(Map.of("fullName", List.of("fullname test 1")));
+//        request.setAttributes(Map.of("fullname", List.of("fullname test")));
 //        request.setFirstName("Test");
 //        request.setLastName("User");
         request.setEnabled(true);
@@ -57,8 +62,8 @@ class UserServiceTest {
             assertEquals(username + "@example.com", user.getEmail());
             assertTrue(user.isEnabled());
         } finally {
-            if (userId != null)
-                safeDeleteUser(userId);
+//            if (userId != null)
+//                safeDeleteUser(userId);
         }
     }
 
@@ -69,7 +74,7 @@ class UserServiceTest {
         UserRequest request = new UserRequest();
         request.setUsername(username);
         request.setEmail(username + "@example.com");
-        request.setAttributes(Map.of("fullname", List.of("fullname test get")));
+        request.setAttributes(Map.of("fullName", List.of("fullname test get")));
 //        request.setFirstName("Get");
 //        request.setLastName("User");
 
@@ -86,6 +91,66 @@ class UserServiceTest {
 //                safeDeleteUser(userId);
         }
     }
+
+    @Test
+    @DisplayName("Print all users")
+    void getAllUsers_ShouldReturnList() {
+        List<UserRequest> users = userService.getAllUsers();
+        for (UserRequest user : users) {
+            System.out.println("userId: " + user.getId() + ", username: " + user.getUsername() + ", email: " + user.getEmail() /*+ ", attributes: " + user.getAttributes().get("fullName") */);
+            if (user.getRoles() != null) {
+                for (RoleRepresentation role: user.getRoles()) {
+                    System.out.println("roles: " + role.getName());
+                }
+            }
+            if (user.getAttributes() != null)
+                System.out.println("Attributes: " + user.getAttributes().get("fullName"));
+        }
+    }
+
+//    @Test
+//    @DisplayName("Print all users")
+//    void getAllUsers_ShouldReturnList() {
+//        List<UserRepresentation> users = userService.getAllUsers();
+//        for (UserRepresentation user : users) {
+//            System.out.println("userId: " + user.getId() + ", username: " + user.getUsername() + ", email: " + user.getEmail() /*+ ", attributes: " + user.getAttributes().get("fullName") */);
+//            if (user.getRealmRoles() != null) {   //roles from UserRepresentation are always null
+//                for (String realmRole : user.getRealmRoles()) {
+//                    System.out.println("Realm roles: " + realmRole);
+//                }
+//            }
+//            if (user.getClientRoles() != null) {
+//                Collection<List<String>> values = user.getClientRoles().values();
+//                for (List<String> collection : values) {
+//                    for (String s : collection) {
+//                        System.out.println("Client role: " + s);
+//                    }
+//                }
+//            }
+//            if (user.getAttributes() != null)
+//                System.out.println("Attributes: " + user.getAttributes().get("fullName"));
+//        }
+//    }
+
+    @Test
+    @DisplayName("Get user ROLES by service")
+    void getUserRoles_ShouldReturnListOfRoleRepresentations() {
+        List<RoleRepresentation> roles = userService.getUserRoles("36a5462f-e629-49f6-bc4d-21703ccc40be");
+        for (RoleRepresentation role : roles) {
+            System.out.println("roles: " + role);
+        }
+    }
+
+//    @Test
+//    @DisplayName("Get user ROLES")
+//    void getUserRolesFromResource_ShouldReturnListOfRoleRepresentations() {
+////        UserRepresentation userRepresentation = usersResource.get("36a5462f-e629-49f6-bc4d-21703ccc40be").toRepresentation();
+//        UserRepresentation userRepresentation = usersResource.search("123", 0, 1, false).getFirst();
+//
+//        for (String role : userRepresentation.getRealmRoles()) {
+//            System.out.println("roles: " + role);
+//        }
+//    }
 
     @Test
     @DisplayName("Should assign role to user")
@@ -110,6 +175,11 @@ class UserServiceTest {
             List<RoleRepresentation> userRoles = userService.getUserRoles(userId);
             assertFalse(userRoles.isEmpty());
             assertTrue(userRoles.stream().anyMatch(role -> roleName.equals(role.getName())));
+
+            userService.removeRoleFromUser(userId, roleName);
+
+            userRoles = userService.getUserRoles(userId);
+            assertFalse(userRoles.stream().anyMatch(role -> roleName.equals(role.getName())));
         } finally {
             safeDeleteUser(userId);
             safeDeleteRole(roleName);
