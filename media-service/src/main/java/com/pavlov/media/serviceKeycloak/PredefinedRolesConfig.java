@@ -21,7 +21,7 @@ import java.util.List;
 @Validated
 public class PredefinedRolesConfig {
     
-    private boolean autoCreate = true;
+//    private boolean autoCreate = true;
     private List<RoleConfig> roles = new ArrayList<>();
     private List<CompositeRoleConfig> compositeRoles = new ArrayList<>();
 

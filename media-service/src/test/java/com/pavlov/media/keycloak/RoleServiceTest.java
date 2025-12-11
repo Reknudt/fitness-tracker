@@ -63,7 +63,7 @@ class RoleServiceTest {
             List<RoleRepresentation> roles = roleService.getAllRoles();
 
             for (RoleRepresentation role : roles) {
-                System.out.println("roles: " + role);
+                System.out.println("roles: " + role.getDescription());
             }
 
             assertNotNull(roles);

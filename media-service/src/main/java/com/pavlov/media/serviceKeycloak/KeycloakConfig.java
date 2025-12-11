@@ -1,32 +1,44 @@
 package com.pavlov.media.serviceKeycloak;
 
-import com.pavlov.media.serviceKeycloak.service.KeycloakSetupService;
-import com.pavlov.media.serviceKeycloak.service.RoleService;
-import com.pavlov.media.serviceKeycloak.service.UserService;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.core.Response;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.admin.client.resource.RealmResource;
+import org.keycloak.admin.client.resource.RoleResource;
 import org.keycloak.admin.client.resource.RolesResource;
 import org.keycloak.admin.client.resource.UsersResource;
+import org.keycloak.representations.idm.ClientRepresentation;
+import org.keycloak.representations.idm.CredentialRepresentation;
+import org.keycloak.representations.idm.RealmRepresentation;
+import org.keycloak.representations.idm.RoleRepresentation;
+import org.keycloak.representations.idm.UserRepresentation;
+import org.springdoc.core.service.GenericResponseService;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.event.EventListener;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Configuration
 @Slf4j
-//@RequiredArgsConstructor    //
+@RequiredArgsConstructor
 @EnableConfigurationProperties(PredefinedRolesConfig.class)
 public class KeycloakConfig {
 
-//    private final KeycloakSetupService keycloakSetupService;
-//    private final UserService userService;
-//    private final String REALM = "scassets";
-//    private final String CLIENT = "scassets-client";
+    private final PredefinedRolesConfig rolesConfig;
+
+    private final GenericResponseService responseBuilder;
 
     @Value("${keycloak.target.realm}")
     private String targetRealm;
@@ -48,6 +60,25 @@ public class KeycloakConfig {
 
     @Value("${keycloak.password}")
     private String password;
+
+    // Default user config
+    @Value("${keycloak.default-user.username}")
+    private String defaultUsername;
+
+    @Value("${keycloak.default-user.email}")
+    private String defaultEmail;
+
+    @Value("${keycloak.default-user.password}")
+    private String defaultPassword;
+
+    @Value("${keycloak.default-user.firstName}")
+    private String defaultFirstName;
+
+    @Value("${keycloak.default-user.lastName}")
+    private String defaultLastName;
+
+    @Value("${keycloak.default-user.roles}")
+    private List<String> defaultUserRoles;
 
     @Bean
     @Primary
@@ -76,43 +107,147 @@ public class KeycloakConfig {
         return realmResource.users();
     }
 
-    @Bean
     @ConditionalOnProperty(name = "keycloak.auto-create", havingValue = "true")
-    public CommandLineRunner initializePredefinedRealm(PredefinedRolesConfig rolesConfig) {
-        return args -> {
+    @EventListener(ApplicationReadyEvent.class)
+    public void initializePredefinedRealm(ApplicationReadyEvent event) {
+        log.info("Starting Keycloak environment initialization");
 
-            log.info("Starting Keycloak environment initialization");
+        Keycloak keycloak = keycloak();
+        RealmResource realmResource = keycloak.realm(targetRealm);
+        RolesResource rolesResource = realmResource.roles();
+        UsersResource usersResource = realmResource.users();
 
-            // Создаём временный экземпляр Keycloak для инициализации
-            Keycloak initKeycloak = KeycloakBuilder.builder()
-                    .serverUrl(serverUrl)
-                    .realm(realm)
-                    .clientId(clientId)
-                    .username(username)
-                    .password(password)
-                    .build();
-
-            KeycloakSetupService setupService = new KeycloakSetupService(initKeycloak);
-            UserService userService = new UserService(usersResource(initKeycloak.realm(targetRealm)), rolesResource(initKeycloak.realm(realm)));
-            RoleService roleService = new RoleService(rolesResource(initKeycloak.realm(targetRealm)), rolesConfig);
-
-            initializeEnvironment(setupService, userService, roleService, rolesConfig);
-        };
-    }
-
-    private void initializeEnvironment(KeycloakSetupService setupService, UserService userService, RoleService roleService, PredefinedRolesConfig rolesConfig) {
-        if (setupService.realmExists()) {
-            log.info("Predefined realm: {} exists ", targetRealm);
+        if (realmExists(keycloak)) {
+            log.info("Predefined realm: {} already exists", targetRealm);
         } else {
             log.info("Initializing predefined realm: {}", targetRealm);
-            setupService.createRealmWithClient();
-
+            createRealmWithClient(keycloak);
             log.info("Initializing predefined roles for realm: {}", targetRealm);
-            roleService.createPredefinedRoles();
-
-            log.info("Initializing default user 'root' for realm: {}", targetRealm);
-            userService.createDefaultUser();
+            createPredefinedRoles(rolesResource);
+            log.info("Initializing default user '{}' for realm: {}", defaultUsername, targetRealm);
+            createDefaultUser(usersResource, rolesResource);
         }
+    }
 
+    private boolean realmExists(Keycloak keycloak) {
+        try {
+            keycloak.realms().realm(targetRealm).toRepresentation();
+            return true;
+        } catch (NotFoundException e) {
+            return false;
+        }
+    }
+
+    public void createRealmWithClient(Keycloak keycloak) {
+        RealmRepresentation realmRepresentation = new RealmRepresentation();
+        realmRepresentation.setRealm(targetRealm);
+        realmRepresentation.setEnabled(true);
+        keycloak.realms().create(realmRepresentation);
+        configureClient(keycloak);
+    }
+
+    /*private void setRealmScopeMicroproflieToDefault(Keycloak keycloak) {
+        List<ClientScopeRepresentation> optionalClientScopeRepresentations = keycloak.realms().realm(targetRealm).getDefaultOptionalClientScopes();
+
+        String microprofileScopeId = optionalClientScopeRepresentations.stream()
+                .filter(s -> "microprofile-jwt".equals(s.getName()))
+                .findFirst()
+                .map(ClientScopeRepresentation::getId)
+                .orElseThrow(() -> new RuntimeException("Scope not found: " + "microprofile-jwt"));     //
+
+        keycloak.realms().realm(targetRealm).removeDefaultOptionalClientScope(microprofileScopeId);
+        keycloak.realms().realm(targetRealm).addDefaultDefaultClientScope(microprofileScopeId);
+    } */
+
+    private void configureClient(Keycloak keycloak) {
+        RealmResource realmResource = keycloak.realm(targetRealm);
+        ClientRepresentation clientRepresentation = new ClientRepresentation();
+        clientRepresentation.setClientId(targetClient);
+        clientRepresentation.setPublicClient(true);
+        clientRepresentation.setDirectAccessGrantsEnabled(true);
+        clientRepresentation.setDefaultClientScopes(List.of("web-origins", "acr", "profile", "roles", "user-profile-attributes", "microprofile-jwt", "basic", "email"));
+        clientRepresentation.setOptionalClientScopes(List.of("address", "phone", "organization", "offline_access"));
+        clientRepresentation.setRedirectUris(List.of("*"));
+        clientRepresentation.setWebOrigins(List.of("*"));
+        clientRepresentation.setAttributes(Map.of("post.logout.redirect.uris", "+"));
+        try (Response response = realmResource.clients().create(clientRepresentation)) {
+            if (Response.Status.CREATED.getStatusCode() != response.getStatus())
+                throw new RuntimeException("Error occurred with code " + response.getStatus() + " and message: " + response);
+        }
+    }
+
+    public void createPredefinedRoles(RolesResource rolesResource) {
+        for (PredefinedRolesConfig.RoleConfig roleConfig : rolesConfig.getRoles()) {
+            RoleRepresentation role = new RoleRepresentation();
+            role.setName(roleConfig.getName());
+            role.setDescription(roleConfig.getDescription());
+            rolesResource.create(role);
+            log.info("Created predefined role: {}", roleConfig.getName());
+        }
+        for (PredefinedRolesConfig.CompositeRoleConfig compositeConfig : rolesConfig.getCompositeRoles()) {
+            RoleRepresentation compositeRole = new RoleRepresentation();
+            compositeRole.setName(compositeConfig.getName());
+            compositeRole.setDescription(compositeConfig.getDescription());
+            compositeRole.setComposite(true);
+            rolesResource.create(compositeRole);
+            log.info("Created composite role: {}", compositeConfig.getName());
+
+            RoleResource newCompositeRole = rolesResource.get(compositeConfig.getName());
+            List<RoleRepresentation> includedRoles = compositeConfig.getIncludedRoles().stream()
+                    .map(roleName -> {
+                        try {
+                            return rolesResource.get(roleName).toRepresentation();
+                        } catch (NotFoundException ex) {
+                            log.warn("Role '{}' not found for composite role '{}'", roleName, compositeConfig.getName());
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
+            if (!includedRoles.isEmpty()) {
+                newCompositeRole.addComposites(includedRoles);
+                log.info("Added {} roles to composite role '{}'", includedRoles.size(), compositeConfig.getName());
+            }
+        }
+    }
+
+    public void createDefaultUser(UsersResource usersResource, RolesResource rolesResource) {
+        UserRepresentation defaultUser = new UserRepresentation();
+        defaultUser.setUsername(defaultUsername);
+//        System.out.println("defaultUserName: " + defaultUser.getUsername());
+//        System.out.println("DEF USERNAME: " + defaultUsername);
+        defaultUser.setEmail(defaultEmail);
+        defaultUser.setEnabled(true);
+        defaultUser.setFirstName(defaultFirstName);
+        defaultUser.setLastName(defaultLastName);
+
+        CredentialRepresentation credential = new CredentialRepresentation();
+        credential.setType(CredentialRepresentation.PASSWORD);
+        credential.setValue(defaultUsername);
+        credential.setTemporary(false);
+
+        defaultUser.setCredentials(List.of(credential));
+
+//        for (String role: defaultUserRoles) {
+//            System.out.println("roles " + role);
+//        }
+
+        Response response = usersResource.create(defaultUser);
+        String location = response.getLocation().getPath();
+        String userId = location.substring(location.lastIndexOf('/') + 1);
+
+        List<RoleRepresentation> roles = defaultUserRoles.stream()
+                .map(roleName -> {
+                    try {
+                        return rolesResource.get(roleName).toRepresentation();
+                    } catch (NotFoundException e) {
+                        log.warn("Role '{}' not found for default user", roleName);
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull).toList();
+
+        usersResource.get(userId).roles().realmLevel().add(roles);
     }
 }

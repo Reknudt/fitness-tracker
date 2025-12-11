@@ -172,7 +172,6 @@ public class RoleService {
                 role.setAttributes(request.getAttributes());
             roleResource.update(role);
 
-            // Обновляем композитные роли
             if (request.getCompositeRoles() != null)
                 updateCompositeRoles(roleName, request.getCompositeRoles());
         } catch (NotFoundException e) {

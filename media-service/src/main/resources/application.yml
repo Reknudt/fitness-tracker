@@ -30,93 +30,319 @@ keycloak:
   target.client: scassets-client
 
   auto-create: true  # set true for role creation during program start
-
+  default-user:
+    username: root
+    email: root@gmail.com
+    password: root
+    firstName: r
+    lastName: r
+    roles: admin
   predefined-roles:
     roles:
       # About
-      - name: formulas_edit
-      - name: roles_view
+      - name: formula_edit
+        description: "Редактирование формулы"
+      - name: role_view
+        description: "Просмотр роли"
       - name: pool_view
+        description: "Просмотр пула"
       # Account
-      - name: accounts_view
-      - name: accounts_edit
+      - name: account_view
+        description: "Просмотр аккаунта"
+      - name: account_edit
+        description: "Редактирование аккаунта"
       # Car
-      - name: cars_view
-      - name: cars_edit
+      - name: car_view
+        description: "Просмотр автомобилей"
+      - name: car_edit
+        description: "Редактирование автомобилей"
       # Contractor
-      - name: contractors_view
-      - name: contractors_edit
+      - name: contractor_view
+        description: "Просмотр контрагентов"
+      - name: contractor_edit
+        description: "Редактирование контрагентов"
       # Counter
-      - name: counters_view
-      - name: counters_edit
+      - name: counter_view
+        description: "Просмотр счетчиков"
+      - name: counter_edit
+        description: "Редактирование счетчиков"
       # Division
-      - name: divisions_view
-      - name: divisions_edit
+      - name: division_view
+        description: "Просмотр подразделений"
+      - name: division_edit
+        description: "Редактирование подразделений"
       # DocAction
-      - name: docactions_view
-      - name: docationss_edit
+      - name: doc_action_view
+        description: "Просмотр действий с документами"
+      - name: doc_action_edit
+        description: "Редактирование действий с документами"
       # DocType
-      - name: doctypes_view
-      - name: doctypes_edit
+      - name: doc_type_view
+        description: "Просмотр типов документов"
+      - name: doc_type_edit
+        description: "Редактирование типов документов"
       # Document
-      - name: documents_view
-      - name: documents_edit
-      - name: documents_process
+      - name: document_view
+        description: "Просмотр документов"
+      - name: document_edit
+        description: "Редактирование документов"
+      - name: document_booker
+        description: "Проводка документов"
+      - name: document_process
+        description: "Обработка документов"
+      - name: operation_view
+        description: "Просмотр операций"
       # Driver
-      - name: drivers_view
-      - name: drivers_edit
+      - name: driver_view
+        description: "Просмотр водителей"
+      - name: driver_edit
+        description: "Редактирование водителей"
       # HistoryLog
-      - name: logs_view
+      - name: log_view
+        description: "Просмотр журнала изменений"
       # Init
-      - name: settings_view
-      - name: settings_edit
+      - name: setting_view
+        description: "Просмотр настроек"
+      - name: setting_edit
+        description: "Редактирование настроек"
       # Location
-      - name: locations_view
-      - name: locations_edit
+      - name: location_view
+        description: "Просмотр местоположений"
+      - name: location_edit
+        description: "Редактирование местоположений"
       # Measure
-      - name: measures_view
-      - name: measures_edit
+      - name: measure_view
+        description: "Просмотр единиц измерения"
+      - name: measure_edit
+        description: "Редактирование единиц измерения"
       # Metal
-      - name: metals_view
-      - name: metals_edit
+      - name: metal_view
+        description: "Просмотр металлов"
+      - name: metal_edit
+        description: "Редактирование металлов"
       # MetalGroup
-      - name: metalgroups_view
-      - name: metalgroups_edit
+      - name: metal_group_view
+        description: "Просмотр групп металлов"
+      - name: metal_group_edit
+        description: "Редактирование групп металлов"
       # Nomenclature
-      - name: nomenclatures_view
-      - name: nomenclatures_edit
+      - name: nomenclature_view
+        description: "Просмотр номенклатуры"
+      - name: nomenclature_edit
+        description: "Редактирование номенклатуры"
       # NomenclatureGroup
-      - name: nomenclaturegroups_view
-      - name: nomenclaturegroups_edit
+      - name: nomenclature_group_view
+        description: "Просмотр групп номенклатуры"
+      - name: nomenclature_group_edit
+        description: "Редактирование групп номенклатуры"
       # OperationType
-      - name: operationtypes_view
-      - name: operationtypes_edit
+      - name: operation_type_view
+        description: "Просмотр типов операций"
+      - name: operation_type_edit
+        description: "Редактирование типов операций"
       # Person
       - name: people_view
+        description: "Просмотр матответственных"
       - name: people_edit
+        description: "Редактирование матответственных"
       # Storage
-      - name: storages_view
-      - name: storages_edit
+      - name: storage_view
+        description: "Просмотр складов"
+      - name: storage_edit
+        description: "Редактирование складов"
       # StorageCard
-      - name: storagecards_view
-      - name: storageaccountable_view       #
-      - name: storagecards_edit
-
-    # Композитные роли (необязательно)
+      - name: storage_card_view
+        description: "Просмотр складских карточек"
+      - name: storage_accountable_view
+        description: "Просмотр складских карточек в подотчете"
+      - name: storage_card_edit
+        description: "Редактирование складских карточек"
+      - name: storage_doc_view
+        description: "Просмотр складских карточек в документах"
+    # Композитные роли
     composite-roles:
-      - name: documents_manager
+      - name: storage_manager
+        description: "Кладовщик"
         included-roles:
-          - documents_view
-          - documents_edit
-          - documents_process
+          - measure_view
+          - measure_edit
+          - nomenclature_view
+          - nomenclature_edit
+          - nomenclature_group_view
+          - nomenclature_group_edit
+          - storage_view
+          - storage_edit
+          - people_view
+          - doc_type_view
+          - doc_type_edit
+          - contractor_view
+          - contractor_edit
+          - car_view
+          - car_edit
+          - driver_view
+          - driver_edit
+          - location_view
+          - location_edit
 
+          - setting_edit
+          - counters_view
+          - counters_edit
 
-logging:
-  level:
+          - storage_accountable_view
+          - storage_card_view
+          - storage_card_edit
+          - storage_doc_view
+          - document_view
+          - document_edit
+          - document_booker
+          - operation_view
+      - name: booker
+        description: "Бухгалтер"
+        included-roles:
+          - storage_view
+          - storage_edit
+          - people_view
+          - people_edit
+          - account_view
+          - account_edit
+          - division_view
+          - division_edit
+          - contractor_view
+          - contractor_edit
+          - doc_type_view
+          - doc_type_edit
+
+          - setting-edit
+          - counter_view
+          - counter_edit
+          - doc_action_view
+          - doc_action_edit
+          - log_view
+          - operation_type_view
+          - operation_type_edit
+
+          - storage_accountable_view
+          - storage_card_view
+          - storage_card_edit
+          - storage_doc_view
+          - document_view
+          - document_edit
+          - document_process
+          - operation_view
+      - name: viewer
+        description: "Просмотр данных"
+        included-roles:
+          - account_view
+          - car_view
+          - contractor_view
+          - division_view
+          - doc_type_view
+          - driver_view
+          - location_view
+          - measure_view
+          - nomenclature_view
+          - nomenclature_group_view
+          - people_view
+          - storage_view
+
+          - counter_view
+          - doc_action_view
+
+          - storage_card_view
+          - storage_doc_view
+          - document_view
+          - operation_view
+      - name: directory_manager
+        description: "Работа со справочниками"
+        included-roles:
+          - account_view
+          - account_edit
+          - car_view
+          - car_edit
+          - contractor_view
+          - contractor_edit
+          - division_view
+          - division_edit
+          - doc_action_view
+          - doc_action_edit
+          - doc_type_view
+          - doc_type_edit
+          - driver_view
+          - driver_edit
+          - location_view
+          - location_edit
+          - measure_view
+          - measure_edit
+          - nomenclature_view
+          - nomenclature_edit
+          - nomenclature_group_view
+          - nomenclature_group_edit
+          - people_view
+          - people_edit
+          - storage_view
+          - storage_edit
+          - metal_view
+          - metal_edit
+
+          - metal_group_view
+          - metal_group_edit
+      - name: admin
+        description: "Администратор (включает все объекты)"
+        included-roles:
+          - account_view
+          - account_edit
+          - car_view
+          - car_edit
+          - contractor_view
+          - contractor_edit
+          - division_view
+          - division_edit
+          - doc_action_view
+          - doc_action_edit
+          - doc_type_view
+          - doc_type_edit
+          - driver_view
+          - driver_edit
+          - location_view
+          - location_edit
+          - measure_view
+          - measure_edit
+          - nomenclature_view
+          - nomenclature_edit
+          - nomenclature_group_view
+          - nomenclature_group_edit
+          - people_view
+          - people_edit
+          - storage_view
+          - storage_edit
+          - metal_view
+          - metal_edit
+          - metal_group_view
+          - metal_group_edit
+
+          - setting_edit
+          - counter_view
+          - counter_edit
+          - log_view
+          - operation_type_view
+          - operation_type_edit
+          - pool_view
+
+          - document_view
+          - document_edit
+          - document_booker
+          - document_process
+          - operation_view
+          - storage_card_view
+          - storage_card_edit
+          - storage_card_accountable_view
+          - storage_doc_view
+#logging:
+#  level:
 #    org.apache.http.impl.execchain.MainClientExec: INFO
 
 #    org.apache.http.wire: DEBUG  # Логирует все HTTP запросы/ответы
-    org.apache.http.headers: DEBUG  # Логирует заголовки
+#    org.apache.http.headers: DEBUG  # Логирует заголовки
 #    org.keycloak.admin.client: DEBUG  # Логи Keycloak клиента
 #    org.jboss.resteasy.client: DEBUG  # RESTEasy клиент
 

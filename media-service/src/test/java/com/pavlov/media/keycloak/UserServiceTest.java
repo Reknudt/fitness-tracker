@@ -41,7 +41,8 @@ class UserServiceTest {
     @Test
     @DisplayName("Should create user and verify it exists")
     void createUser_WithValidData_ShouldCreateUser() {
-        String username = generateUniqueUsername("user2");
+//        String username = generateUniqueUsername("user2");
+        String username = "user1";
         UserRequest request = new UserRequest();
         request.setUsername(username);
         request.setEmail(username + "@example.com");

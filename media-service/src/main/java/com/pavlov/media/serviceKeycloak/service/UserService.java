@@ -3,7 +3,7 @@ package com.pavlov.media.serviceKeycloak.service;
 import com.pavlov.media.serviceKeycloak.request.UserRequest;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Response;
-import lombok.RequiredArgsConstructor;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.resource.RolesResource;
 import org.keycloak.admin.client.resource.UserResource;
@@ -17,11 +17,13 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
+
+@AllArgsConstructor
 public class UserService {
 
     private final UsersResource usersResource;
@@ -77,8 +79,10 @@ public class UserService {
     public String createUser(UserRequest request) {
         UserRepresentation newUser = getUserRepresentation(request);
         try (Response response = usersResource.create(newUser)) {
-            String location = response.getLocation().getPath();     // Получаем ID созданного пользователя из Location header
-            return location.substring(location.lastIndexOf('/') + 1);   // returns userId from uri
+            if (Response.Status.CREATED.getStatusCode() != response.getStatus())
+                throw new ResponseStatusException(CONFLICT, "User " + newUser.getUsername() + " already exists ?");
+            String location = response.getLocation().getPath();
+            return location.substring(location.lastIndexOf('/') + 1); // returns userId from uri
         }
     }
 
@@ -161,18 +165,27 @@ public class UserService {
             newUser.setAttributes(request.getAttributes());
         if (request.getRequiredActions() != null)
             newUser.setRequiredActions(request.getRequiredActions());
+
+        CredentialRepresentation credential = new CredentialRepresentation();
+        credential.setType(CredentialRepresentation.PASSWORD);
+        credential.setValue(request.getUsername());
+        credential.setTemporary(true);
+
+        newUser.setCredentials(List.of(credential));
+
         return newUser;
     }
 
-    // create user
-
-    public void createDefaultUser() {
+    // create default user
+    /*public void createDefaultUser() {
         UserRepresentation defaultUser = new UserRepresentation();
-        defaultUser.setUsername("root");
-        defaultUser.setEmail("root@gmail.com"); //
+        defaultUser.setUsername(defaultUsername);
+        System.out.println("defaultUserName: " + defaultUser.getUsername());
+        System.out.println("DEF USERNAME: " + defaultUsername);
+        defaultUser.setEmail(defaultEmail);
         defaultUser.setEnabled(true);
-        defaultUser.setFirstName("r");
-        defaultUser.setLastName("r");
+        defaultUser.setFirstName(defaultFirstName);
+        defaultUser.setLastName(defaultLastName);
 
         CredentialRepresentation credential = new CredentialRepresentation();
         credential.setType(CredentialRepresentation.PASSWORD);
@@ -182,6 +195,22 @@ public class UserService {
         defaultUser.setCredentials(List.of(credential));
 
         usersResource.create(defaultUser);
-    }
+/*        Response response = usersResource.create(defaultUser);
+        String location = response.getLocation().getPath();
+        String userId = location.substring(location.lastIndexOf('/') + 1);
+
+        List<RoleRepresentation> roles = defaultUserRoles.stream()
+                .map(roleName -> {
+                    try {
+                        return rolesResource.get(roleName).toRepresentation();
+                    } catch (NotFoundException e) {
+                        log.warn("Role '{}' not found for default user", roleName);
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull).toList();
+
+        usersResource.get(userId).roles().realmLevel().add(roles);*/
+    //}
 
 }
