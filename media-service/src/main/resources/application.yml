@@ -27,7 +27,7 @@ keycloak:
   username: admin
   password: admin
   target.realm: scassets
-  target.client: scassets-client
+  target.client-id: scassets-client
 
   auto-create: true  # set true for role creation during program start
   default-user:
@@ -44,8 +44,6 @@ keycloak:
         description: "Редактирование формулы"
       - name: role_view
         description: "Просмотр роли"
-      - name: pool_view
-        description: "Просмотр пула"
       # Account
       - name: account_view
         description: "Просмотр аккаунта"
@@ -86,8 +84,6 @@ keycloak:
         description: "Просмотр документов"
       - name: document_edit
         description: "Редактирование документов"
-      - name: document_booker
-        description: "Проводка документов"
       - name: document_process
         description: "Обработка документов"
       - name: operation_view
@@ -101,8 +97,6 @@ keycloak:
       - name: log_view
         description: "Просмотр журнала изменений"
       # Init
-      - name: setting_view
-        description: "Просмотр настроек"
       - name: setting_edit
         description: "Редактирование настроек"
       # Location
@@ -153,11 +147,11 @@ keycloak:
       # StorageCard
       - name: storage_card_view
         description: "Просмотр складских карточек"
-      - name: storage_accountable_view
+      - name: storage_card_accountable_view
         description: "Просмотр складских карточек в подотчете"
       - name: storage_card_edit
         description: "Редактирование складских карточек"
-      - name: storage_doc_view
+      - name: storage_card_doc_view
         description: "Просмотр складских карточек в документах"
     # Композитные роли
     composite-roles:
@@ -173,6 +167,7 @@ keycloak:
           - storage_view
           - storage_edit
           - people_view
+          - people_edit
           - doc_type_view
           - doc_type_edit
           - contractor_view
@@ -185,16 +180,15 @@ keycloak:
           - location_edit
 
           - setting_edit
-          - counters_view
-          - counters_edit
+          - counter_view
+          - counter_edit
 
-          - storage_accountable_view
+          - storage_card_accountable_view
           - storage_card_view
           - storage_card_edit
-          - storage_doc_view
+          - storage_card_doc_view
           - document_view
           - document_edit
-          - document_booker
           - operation_view
       - name: booker
         description: "Бухгалтер"
@@ -212,7 +206,7 @@ keycloak:
           - doc_type_view
           - doc_type_edit
 
-          - setting-edit
+          - setting_edit
           - counter_view
           - counter_edit
           - doc_action_view
@@ -221,10 +215,10 @@ keycloak:
           - operation_type_view
           - operation_type_edit
 
-          - storage_accountable_view
+          - storage_card_accountable_view
           - storage_card_view
           - storage_card_edit
-          - storage_doc_view
+          - storage_card_doc_view
           - document_view
           - document_edit
           - document_process
@@ -236,6 +230,7 @@ keycloak:
           - car_view
           - contractor_view
           - division_view
+#          - doc_action_view       // убрать
           - doc_type_view
           - driver_view
           - location_view
@@ -249,7 +244,6 @@ keycloak:
           - doc_action_view
 
           - storage_card_view
-          - storage_doc_view
           - document_view
           - operation_view
       - name: directory_manager
@@ -283,7 +277,6 @@ keycloak:
           - storage_edit
           - metal_view
           - metal_edit
-
           - metal_group_view
           - metal_group_edit
       - name: admin
@@ -319,24 +312,20 @@ keycloak:
           - metal_edit
           - metal_group_view
           - metal_group_edit
-
           - setting_edit
           - counter_view
           - counter_edit
           - log_view
           - operation_type_view
           - operation_type_edit
-          - pool_view
-
           - document_view
           - document_edit
-          - document_booker
           - document_process
           - operation_view
           - storage_card_view
           - storage_card_edit
           - storage_card_accountable_view
-          - storage_doc_view
+          - storage_card_doc_view
 #logging:
 #  level:
 #    org.apache.http.impl.execchain.MainClientExec: INFO

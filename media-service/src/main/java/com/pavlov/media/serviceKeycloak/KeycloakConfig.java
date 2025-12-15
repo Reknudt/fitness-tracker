@@ -15,7 +15,6 @@ import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
-import org.springdoc.core.service.GenericResponseService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -38,13 +37,11 @@ public class KeycloakConfig {
 
     private final PredefinedRolesConfig rolesConfig;
 
-    private final GenericResponseService responseBuilder;
-
     @Value("${keycloak.target.realm}")
     private String targetRealm;
 
-    @Value("${keycloak.target.client}")
-    private String targetClient;
+    @Value("${keycloak.target.client-id}")
+    private String targetClientId;
 
     @Value("${keycloak.server-url}")
     private String serverUrl;
@@ -92,36 +89,22 @@ public class KeycloakConfig {
                 .build();
     }
 
-    @Bean
-    public RealmResource realmResource(Keycloak keycloak, @Value("${keycloak.target.realm}") String targetRealm) {
-        return keycloak.realm(targetRealm);
-    }
-
-    @Bean
-    public RolesResource rolesResource(RealmResource realmResource) {
-        return realmResource.roles();
-    }
-
-    @Bean
-    public UsersResource usersResource(RealmResource realmResource) {
-        return realmResource.users();
-    }
-
     @ConditionalOnProperty(name = "keycloak.auto-create", havingValue = "true")
     @EventListener(ApplicationReadyEvent.class)
-    public void initializePredefinedRealm(ApplicationReadyEvent event) {
+    public void initializePredefinedRealm(ApplicationReadyEvent event) {        //todo remove methods to other services
         log.info("Starting Keycloak environment initialization");
-
         Keycloak keycloak = keycloak();
-        RealmResource realmResource = keycloak.realm(targetRealm);
-        RolesResource rolesResource = realmResource.roles();
-        UsersResource usersResource = realmResource.users();
 
         if (realmExists(keycloak)) {
             log.info("Predefined realm: {} already exists", targetRealm);
         } else {
             log.info("Initializing predefined realm: {}", targetRealm);
             createRealmWithClient(keycloak);
+
+            RealmResource realmResource = keycloak.realm(targetRealm);
+            RolesResource rolesResource = realmResource.roles();
+            UsersResource usersResource = realmResource.users();
+
             log.info("Initializing predefined roles for realm: {}", targetRealm);
             createPredefinedRoles(rolesResource);
             log.info("Initializing default user '{}' for realm: {}", defaultUsername, targetRealm);
@@ -162,7 +145,7 @@ public class KeycloakConfig {
     private void configureClient(Keycloak keycloak) {
         RealmResource realmResource = keycloak.realm(targetRealm);
         ClientRepresentation clientRepresentation = new ClientRepresentation();
-        clientRepresentation.setClientId(targetClient);
+        clientRepresentation.setClientId(targetClientId);
         clientRepresentation.setPublicClient(true);
         clientRepresentation.setDirectAccessGrantsEnabled(true);
         clientRepresentation.setDefaultClientScopes(List.of("web-origins", "acr", "profile", "roles", "user-profile-attributes", "microprofile-jwt", "basic", "email"));
@@ -215,8 +198,6 @@ public class KeycloakConfig {
     public void createDefaultUser(UsersResource usersResource, RolesResource rolesResource) {
         UserRepresentation defaultUser = new UserRepresentation();
         defaultUser.setUsername(defaultUsername);
-//        System.out.println("defaultUserName: " + defaultUser.getUsername());
-//        System.out.println("DEF USERNAME: " + defaultUsername);
         defaultUser.setEmail(defaultEmail);
         defaultUser.setEnabled(true);
         defaultUser.setFirstName(defaultFirstName);
@@ -229,13 +210,9 @@ public class KeycloakConfig {
 
         defaultUser.setCredentials(List.of(credential));
 
-//        for (String role: defaultUserRoles) {
-//            System.out.println("roles " + role);
-//        }
-
         Response response = usersResource.create(defaultUser);
         String location = response.getLocation().getPath();
-        String userId = location.substring(location.lastIndexOf('/') + 1);
+        String userId = location.substring(location.lastIndexOf('/') + 1);  // get userId from url
 
         List<RoleRepresentation> roles = defaultUserRoles.stream()
                 .map(roleName -> {

@@ -1,12 +1,11 @@
 package com.pavlov.media.keycloak;
 
-import com.pavlov.media.serviceKeycloak.request.RoleRequest;
 import com.pavlov.media.serviceKeycloak.request.UserRequest;
 import com.pavlov.media.serviceKeycloak.service.RoleService;
 import com.pavlov.media.serviceKeycloak.service.UserService;
+import jakarta.ws.rs.core.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,8 +26,8 @@ class UserServiceTest {
     @Autowired
     private RoleService roleService;
 
-    @Autowired
-    private UsersResource usersResource;
+//    @Autowired
+//    private UsersResource usersResource;
 
     private String generateUniqueUsername(String prefix) {
         return prefix + "_" + UUID.randomUUID().toString().substring(0, 8);
@@ -41,8 +40,8 @@ class UserServiceTest {
     @Test
     @DisplayName("Should create user and verify it exists")
     void createUser_WithValidData_ShouldCreateUser() {
-//        String username = generateUniqueUsername("user2");
-        String username = "user1";
+//        String username = generateUniqueUsername("booker_user2");
+        String username = "booker_user1";
         UserRequest request = new UserRequest();
         request.setUsername(username);
         request.setEmail(username + "@example.com");
@@ -54,7 +53,9 @@ class UserServiceTest {
 
         String userId = null;
         try {
-            userId = userService.createUser(request);
+//            userId = userService.createUser(request);
+            assertEquals(Response.Status.CREATED.getStatusCode(), userService.createUser(request).getStatus());
+            userId = userService.getUserByUsername(username).getId();
 
             assertNotNull(userId);
             UserRepresentation user = userService.getUserById(userId);
@@ -65,6 +66,31 @@ class UserServiceTest {
         } finally {
 //            if (userId != null)
 //                safeDeleteUser(userId);
+        }
+    }
+
+    @Test
+    @DisplayName("Simpler user create")
+    void createUser() {
+        String username = "user5";
+        UserRequest request = new UserRequest();
+        request.setUsername(username);
+
+        try (Response response = userService.createUser(request)) {
+            assertEquals(Response.Status.CREATED.getStatusCode(), response.getStatus());
+        }
+        String userId = userService.getUserByUsername(username).getId();
+        try (Response response = userService.deleteUser(userId + "123")) {
+            assertEquals(Response.Status.NOT_FOUND.getStatusCode(), response.getStatus());
+        }
+    }
+
+    @Test
+    @DisplayName("Create user with no username")
+    void createUserWithNoUsername_shouldReturnBadRequest() {
+        UserRequest request = new UserRequest();
+        try (Response response = userService.createUser(request)) {
+            assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), response.getStatus());
         }
     }
 
@@ -81,7 +107,9 @@ class UserServiceTest {
 
         String userId = null;
         try {
-            userId = userService.createUser(request);
+//            userId = userService.createUser(request);
+            assertEquals(Response.Status.CREATED.getStatusCode(), userService.createUser(request).getStatus());
+            userId = userService.getUserByUsername(username).getId();
             UserRepresentation user = userService.getUserByUsername(username);
 
             assertNotNull(user);
@@ -154,36 +182,81 @@ class UserServiceTest {
 //    }
 
     @Test
-    @DisplayName("Should assign role to user")
+    @DisplayName("Should assign and remove role to user")
     void assignRoleToUser_ShouldAssignRoleSuccessfully() {
-        String username = generateUniqueUsername("roleuser");
-        String roleName = generateUniqueRoleName("USER_ROLE");
-        
-        UserRequest userRequest = new UserRequest();
-        userRequest.setUsername(username);
-        userRequest.setEmail(username + "@example.com");
-        userRequest.setAttributes(Map.of("fullname", List.of("fullname test assign")));
-        String userId = userService.createUser(userRequest);
+//        String username = generateUniqueUsername("roleuser");
+//        String roleName = generateUniqueRoleName("USER_ROLE");
+        String username = "booker_user1";
+        String roleName = "booker";
 
-        RoleRequest roleRequest = new RoleRequest();
-        roleRequest.setName(roleName);
-        roleRequest.setDescription("Test role for assignment");
-        roleService.createRole(roleRequest);
+        UserRequest userRequest = new UserRequest();
+//        userRequest.setUsername(username);
+//        userRequest.setEmail(username + "@example.com");
+//        userRequest.setAttributes(Map.of("fullname", List.of("fullname test assign")));
+//        String userId = userService.createUser(userRequest);
+
+//        RoleRequest roleRequest = new RoleRequest();
+//        roleRequest.setName(roleName);
+//        roleRequest.setDescription("Test role for assignment");
+//        roleService.createRole(roleRequest);
 
         try {
+            String userId = userService.getUserByUsername(username).getId();
             userService.assignRoleToUser(userId, roleName);
 
             List<RoleRepresentation> userRoles = userService.getUserRoles(userId);
             assertFalse(userRoles.isEmpty());
             assertTrue(userRoles.stream().anyMatch(role -> roleName.equals(role.getName())));
 
-            userService.removeRoleFromUser(userId, roleName);
+//            userService.removeRoleFromUser(userId, roleName);
+
+//            userRoles = userService.getUserRoles(userId);
+//            assertFalse(userRoles.stream().anyMatch(role -> roleName.equals(role.getName())));
+        } finally {
+//            safeDeleteUser(userId);
+//            safeDeleteRole(roleName);
+        }
+    }
+
+    @Test
+    @DisplayName("Should assign roles to user")
+    void assignRolesToUser_ShoulfAssignRoleSuccessfully() {
+        //        String username = generateUniqueUsername("roleuser");
+//        String roleName = generateUniqueRoleName("USER_ROLE");
+        String username = "test_user3";
+
+        List<String> roleNames = List.of("account_edit", "document_process", "viewer");
+
+        UserRequest userRequest = new UserRequest();
+        userRequest.setUsername(username);
+        userRequest.setEmail(username + "@example.com");
+        userRequest.setAttributes(Map.of("fullname", List.of("fullname test assign")));
+//        String userId = userService.createUser(userRequest);
+        assertEquals(Response.Status.CREATED.getStatusCode(), userService.createUser(userRequest).getStatus());
+        String userId = userService.getUserByUsername(username).getId();
+
+//        RoleRequest roleRequest = new RoleRequest();
+//        roleRequest.setName(roleName);
+//        roleRequest.setDescription("Test role for assignment");
+//        roleService.createRole(roleRequest);
+
+        try {
+//            String userId = userService.getUserByUsername(username).getId();
+            userService.assignRoleToUser(userId, roleNames);
+
+            List<RoleRepresentation> userRoles = userService.getUserRoles(userId);
+            assertFalse(userRoles.isEmpty());
+            assertTrue(userRoles.stream().anyMatch(role -> roleNames.getFirst().equals(role.getName())));
+
+            userService.removeRoleFromUser(userId, roleNames);
 
             userRoles = userService.getUserRoles(userId);
-            assertFalse(userRoles.stream().anyMatch(role -> roleName.equals(role.getName())));
+            assertFalse(userRoles.stream().anyMatch(role -> roleNames.getFirst().equals(role.getName())));
         } finally {
-            safeDeleteUser(userId);
-            safeDeleteRole(roleName);
+//            safeDeleteUser(userId);
+//            for (String roleName: roleNames) {
+//                safeDeleteRole(roleName);
+//            }
         }
     }
 
@@ -197,7 +270,9 @@ class UserServiceTest {
         request.setEnabled(true);
         request.setAttributes(Map.of("fullname", List.of("fullname test enable")));
 
-        String userId = userService.createUser(request);
+//           String userId = userService.createUser(request);
+        assertEquals(Response.Status.CREATED.getStatusCode(), userService.createUser(request).getStatus());
+        String userId = userService.getUserByUsername(username).getId();
 
         try {
             // disable user
@@ -225,7 +300,10 @@ class UserServiceTest {
 //        createRequest.setLastName("Name");
         createRequest.setAttributes(Map.of("fullname", List.of("old fullname")));
 
-        String userId = userService.createUser(createRequest);
+//        String userId = userService.createUser(createRequest);
+//           String userId = userService.createUser(request);
+        assertEquals(Response.Status.CREATED.getStatusCode(), userService.createUser(createRequest).getStatus());
+        String userId = userService.getUserByUsername(username).getId();
 
         try {
             UserRequest updateRequest = new UserRequest();
@@ -255,7 +333,10 @@ class UserServiceTest {
         request.setEmail(username + "@example.com");
         request.setAttributes(Map.of("fullname", List.of("del fullname")));
 
-        String userId = userService.createUser(request);
+        //           String userId = userService.createUser(request);
+        assertEquals(Response.Status.CREATED.getStatusCode(), userService.createUser(request).getStatus());
+        String userId = userService.getUserByUsername(username).getId();
+
         System.out.println("userId: " + userId);
         assertNotNull(userService.getUserById(userId)); // Verify user exists
 

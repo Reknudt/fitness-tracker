@@ -8,6 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -184,6 +186,17 @@ class RoleServiceTest {
             // Cleanup
             safeDeleteRole(roleName);
         }
+    }
+
+    @Test
+    @DisplayName("Create Role with no name")
+    void createRoleWithNoName_shouldReturnBadRequest() {
+        RoleRequest request = new RoleRequest();
+        request.setDescription("should throw bad request");
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+            roleService.createRole(request);
+        });
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
     }
 
     @Test

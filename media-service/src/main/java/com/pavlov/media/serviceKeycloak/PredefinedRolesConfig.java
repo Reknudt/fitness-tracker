@@ -13,7 +13,6 @@ import org.springframework.validation.annotation.Validated;
 import java.util.ArrayList;
 import java.util.List;
 
-//@Component
 @ConfigurationProperties(prefix = "keycloak.predefined-roles")
 @Getter
 @Setter
@@ -21,7 +20,6 @@ import java.util.List;
 @Validated
 public class PredefinedRolesConfig {
     
-//    private boolean autoCreate = true;
     private List<RoleConfig> roles = new ArrayList<>();
     private List<CompositeRoleConfig> compositeRoles = new ArrayList<>();
 

@@ -11,6 +11,7 @@ import java.util.Map;
 @Setter
 public class UserRequest {
     private String id;
+//    @NotNull
     private String username;
     private String email;
 //    private String firstName;

@@ -5,9 +5,11 @@ import com.pavlov.media.serviceKeycloak.request.RoleRequest;
 import jakarta.ws.rs.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.RoleResource;
 import org.keycloak.admin.client.resource.RolesResource;
 import org.keycloak.representations.idm.RoleRepresentation;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -16,6 +18,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
@@ -24,9 +27,16 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 @RequiredArgsConstructor
 public class RoleService {
 
-    private final RolesResource rolesResource;
     private final PredefinedRolesConfig rolesConfig;
+    private final Keycloak keycloak;
 
+    @Value("${keycloak.target.realm}")
+    private String targetRealm;
+
+    private RolesResource rolesResource() {
+        return keycloak.realm(targetRealm).roles();
+    }
+    
     public List<PredefinedRolesConfig.RoleConfig> getPredefinedRoleConfigs() {
         return rolesConfig.getRoles();
     }
@@ -67,7 +77,7 @@ public class RoleService {
 //                .filter(role -> role.getName().startsWith(category.toUpperCase() + "_"))
 //                .map(role -> {
 //                    try {
-//                        return rolesResource.get(role.getName()).toRepresentation();
+//                        return rolesResource().get(role.getName()).toRepresentation();
 //                    } catch (NotFoundException e) {
 //                        return null;
 //                    }
@@ -79,13 +89,13 @@ public class RoleService {
     public void createPredefinedRoles() {
         for (PredefinedRolesConfig.RoleConfig roleConfig : rolesConfig.getRoles()) {
             try {
-                rolesResource.get(roleConfig.getName()).toRepresentation();
+                rolesResource().get(roleConfig.getName()).toRepresentation();
                 log.debug("Role '{}' already exists, skipping", roleConfig.getName());
             } catch (NotFoundException e) {
                 RoleRepresentation role = new RoleRepresentation();
                 role.setName(roleConfig.getName());
                 role.setDescription(roleConfig.getDescription());
-                rolesResource.create(role);
+                rolesResource().create(role);
                 log.info("Created predefined role: {}", roleConfig.getName());
             }
         }
@@ -94,7 +104,7 @@ public class RoleService {
         for (PredefinedRolesConfig.CompositeRoleConfig compositeConfig : rolesConfig.getCompositeRoles()) {
             try {
                 // Проверяем, существует ли уже композитная роль
-                RoleResource existingRole = rolesResource.get(compositeConfig.getName());
+                RoleResource existingRole = rolesResource().get(compositeConfig.getName());
                 RoleRepresentation existing = existingRole.toRepresentation();
 
                 if (existing.isComposite()) {
@@ -107,15 +117,15 @@ public class RoleService {
                 compositeRole.setName(compositeConfig.getName());
                 compositeRole.setDescription(compositeConfig.getDescription());
                 compositeRole.setComposite(true);
-                rolesResource.create(compositeRole);
+                rolesResource().create(compositeRole);
                 log.info("Created composite role: {}", compositeConfig.getName());
 
                 // Добавляем вложенные роли
-                RoleResource newCompositeRole = rolesResource.get(compositeConfig.getName());
+                RoleResource newCompositeRole = rolesResource().get(compositeConfig.getName());
                 List<RoleRepresentation> includedRoles = compositeConfig.getIncludedRoles().stream()
                         .map(roleName -> {
                             try {
-                                return rolesResource.get(roleName).toRepresentation();
+                                return rolesResource().get(roleName).toRepresentation();
                             } catch (NotFoundException ex) {
                                 log.warn("Role '{}' not found for composite role '{}'", roleName, compositeConfig.getName());
                                 return null;
@@ -135,12 +145,15 @@ public class RoleService {
     // ---------------------------
 
     public List<RoleRepresentation> getAllRoles() {
-        return rolesResource.list();
+        return rolesResource().list()
+                .stream()
+                .filter(role -> !isDefaultKeycloakRole(role.getName()))     // фильтр убирает системные роли
+                .toList();
     }
 
     public RoleRepresentation getRoleByName(String roleName) {
         try {
-            RoleResource roleResource = rolesResource.get(roleName);
+            RoleResource roleResource = rolesResource().get(roleName);
             return roleResource.toRepresentation();
         } catch (NotFoundException e) {
             log.warn("Role not found: {}", roleName);
@@ -149,6 +162,8 @@ public class RoleService {
     }
 
     public void createRole(RoleRequest request) {
+        if (Objects.isNull(request.getName()) || request.getName().isEmpty())
+            throw new ResponseStatusException(BAD_REQUEST, "Role name must not be empty");
         if (roleExists(request.getName()))
             throw new ResponseStatusException(CONFLICT, "Role already exists: " + request.getName());
         RoleRepresentation newRole = new RoleRepresentation();
@@ -157,14 +172,14 @@ public class RoleService {
         newRole.setComposite(request.isComposite());
         if (request.getAttributes() != null)
             newRole.setAttributes(request.getAttributes());
-        rolesResource.create(newRole);
+        rolesResource().create(newRole);
         if (request.isComposite() && request.getCompositeRoles() != null && !request.getCompositeRoles().isEmpty())
             addCompositeRoles(request.getName(), request.getCompositeRoles());
     }
 
     public void updateRole(String roleName, RoleRequest request) {
         try {
-            RoleResource roleResource = rolesResource.get(roleName);
+            RoleResource roleResource = rolesResource().get(roleName);
             RoleRepresentation role = roleResource.toRepresentation();
             if (request.getDescription() != null)
                 role.setDescription(request.getDescription());
@@ -182,7 +197,7 @@ public class RoleService {
 
     public void deleteRole(String roleName) {
         try {
-            rolesResource.deleteRole(roleName);
+            rolesResource().deleteRole(roleName);
         } catch (NotFoundException e) {
             log.warn("Role not found for deletion: {}", roleName);
             throw new ResponseStatusException(NOT_FOUND, "Role not found: " + roleName);
@@ -191,27 +206,33 @@ public class RoleService {
 
     public boolean roleExists(String roleName) {
         try {
-            rolesResource.get(roleName).toRepresentation();
+            rolesResource().get(roleName).toRepresentation();
             return true;
         } catch (NotFoundException e) {
             return false;
         }
     }
 
-    private void addCompositeRoles(String roleName, List<String> compositeRoleNames) {
-        RoleResource roleResource = rolesResource.get(roleName);
-        List<RoleRepresentation> compositeRoles = compositeRoleNames.stream().map(name -> rolesResource.get(name).toRepresentation()).collect(Collectors.toList());
-        roleResource.addComposites(compositeRoles);
-    }
-
     private void updateCompositeRoles(String roleName, List<String> newCompositeRoles) {
-        RoleResource roleResource = rolesResource.get(roleName);
+        RoleResource roleResource = rolesResource().get(roleName);
         Set<RoleRepresentation> currentComposites = roleResource.getRoleComposites();   // Получаем текущие композитные роли
         if (!currentComposites.isEmpty())                                               // Удаляем старые композитные роли
             roleResource.deleteComposites(currentComposites.stream().toList());
         if (!newCompositeRoles.isEmpty()) {                                             // Добавляем новые композитные роли
-            List<RoleRepresentation> compositeRoles = newCompositeRoles.stream().map(name -> rolesResource.get(name).toRepresentation()).collect(Collectors.toList());
+            List<RoleRepresentation> compositeRoles = newCompositeRoles.stream().map(name -> rolesResource().get(name).toRepresentation()).toList();
             roleResource.addComposites(compositeRoles);
         }
+    }
+
+    private void addCompositeRoles(String roleName, List<String> compositeRoleNames) {
+        RoleResource roleResource = rolesResource().get(roleName);
+        List<RoleRepresentation> compositeRoles = compositeRoleNames.stream().map(name -> rolesResource().get(name).toRepresentation()).toList();
+        roleResource.addComposites(compositeRoles);
+    }
+
+    private boolean isDefaultKeycloakRole(String roleName) {
+        return roleName.equals("uma_authorization")
+                || roleName.equals("offline_access")
+                || roleName.startsWith("default-roles-");
     }
 }
