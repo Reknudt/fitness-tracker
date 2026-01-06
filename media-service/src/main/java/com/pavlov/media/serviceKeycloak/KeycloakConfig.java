@@ -9,6 +9,7 @@ import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.admin.client.resource.RoleResource;
 import org.keycloak.admin.client.resource.RolesResource;
+import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.CredentialRepresentation;
@@ -27,6 +28,7 @@ import org.springframework.context.event.EventListener;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Configuration
@@ -91,42 +93,119 @@ public class KeycloakConfig {
 
     @ConditionalOnProperty(name = "keycloak.auto-create", havingValue = "true")
     @EventListener(ApplicationReadyEvent.class)
-    public void initializePredefinedRealm(ApplicationReadyEvent event) {        //todo remove methods to other services
+    public void initializePredefinedRealm(ApplicationReadyEvent event) {
         log.info("Starting Keycloak environment initialization");
         Keycloak keycloak = keycloak();
 
-        if (realmExists(keycloak)) {
+        RealmResource realmResource = ensureRealmExists(keycloak);
+        ensureClientExists(realmResource);
+        ensurePredefinedRolesExist(realmResource.roles());
+        ensureDefaultUserExists(realmResource.users(), realmResource.roles());
+        log.info("Keycloak environment ensured successfully");
+
+//        RealmResource realmResource = keycloak.realm(targetRealm);
+//        RolesResource rolesResource = realmResource.roles();
+//        UsersResource usersResource = realmResource.users();
+
+        /*if (realmExists(keycloak)) {
             log.info("Predefined realm: {} already exists", targetRealm);
         } else {
             log.info("Initializing predefined realm: {}", targetRealm);
-            createRealmWithClient(keycloak);
-
-            RealmResource realmResource = keycloak.realm(targetRealm);
-            RolesResource rolesResource = realmResource.roles();
-            UsersResource usersResource = realmResource.users();
+            createRealm(keycloak);
 
             log.info("Initializing predefined roles for realm: {}", targetRealm);
             createPredefinedRoles(rolesResource);
             log.info("Initializing default user '{}' for realm: {}", defaultUsername, targetRealm);
             createDefaultUser(usersResource, rolesResource);
+        }*/
+    }
+
+    private RealmResource ensureRealmExists(Keycloak keycloak) {
+        try {
+            RealmResource realmResource = keycloak.realms().realm(targetRealm);
+            realmResource.toRepresentation();
+            log.info("Realm '{}' exists", targetRealm);
+            return realmResource;
+        } catch (NotFoundException e) {
+            log.info("Creating realm '{}'...", targetRealm);
+            createRealm(keycloak);
+            return keycloak.realms().realm(targetRealm);
         }
     }
 
-    private boolean realmExists(Keycloak keycloak) {
+    private void ensureClientExists(RealmResource realmResource) {
+        List<ClientRepresentation> clients = realmResource.clients().findByClientId(targetClientId);
+        if (!clients.isEmpty()) {
+            log.info("Client '{}' exists", targetClientId);
+            return;
+        }
+        log.info("Creating client '{}'...", targetClientId);
+        createClient(realmResource);
+    }
+
+    private void ensureDefaultUserExists(UsersResource usersResource, RolesResource rolesResource) {
+        List<UserRepresentation> existingUsers = usersResource.search(defaultUsername);
+        if (!existingUsers.isEmpty()) {
+            log.info("Default user '{}' exists", defaultUsername);
+            ensureUserHasRequiredRoles(existingUsers.getFirst().getId(), usersResource, rolesResource);
+            return;
+        }
+        log.info("Creating default user '{}'...", defaultUsername);
+        createDefaultUser(usersResource, rolesResource);
+    }
+
+    private void ensureUserHasRequiredRoles(String userId, UsersResource usersResource, RolesResource rolesResource) {
+        UserResource userResource = usersResource.get(userId);
+
+        List<RoleRepresentation> currentRoles = userResource.roles().realmLevel().listAll();
+        Set<String> currentRoleNames = currentRoles.stream().map(RoleRepresentation::getName).collect(Collectors.toSet());
+
+        List<RoleRepresentation> missingRoles = defaultUserRoles.stream()
+                .filter(roleName -> !currentRoleNames.contains(roleName))
+                .map(roleName -> {
+                    try {
+                        return rolesResource.get(roleName).toRepresentation();
+                    } catch (NotFoundException e) {
+                        log.warn("Role '{}' not found for default user", roleName);
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        if (!missingRoles.isEmpty()) {
+            userResource.roles().realmLevel().add(missingRoles);
+            log.info("Added {} missing roles to default user '{}'", missingRoles.size(), defaultUsername);
+        }
+    }
+
+    /*private boolean realmExists(Keycloak keycloak) {
         try {
             keycloak.realms().realm(targetRealm).toRepresentation();
             return true;
         } catch (NotFoundException e) {
             return false;
         }
-    }
+    }*/
 
-    public void createRealmWithClient(Keycloak keycloak) {
+//    private boolean clientExists(Keycloak keycloak) {
+//        try {
+//            keycloak.realms().realm(targetRealm).clients().get(targetClientId);
+//            return true;
+//        } catch (NotFoundException e) {
+//            return false;
+//        }
+//    }
+
+//    private boolean defaultUserExists(UsersResource usersResource) {
+//        return Objects.nonNull(usersResource.search(defaultUsername).getFirst());
+//    }
+
+    public void createRealm(Keycloak keycloak) {
         RealmRepresentation realmRepresentation = new RealmRepresentation();
         realmRepresentation.setRealm(targetRealm);
         realmRepresentation.setEnabled(true);
         keycloak.realms().create(realmRepresentation);
-        configureClient(keycloak);
     }
 
     /*private void setRealmScopeMicroproflieToDefault(Keycloak keycloak) {
@@ -142,8 +221,7 @@ public class KeycloakConfig {
         keycloak.realms().realm(targetRealm).addDefaultDefaultClientScope(microprofileScopeId);
     } */
 
-    private void configureClient(Keycloak keycloak) {
-        RealmResource realmResource = keycloak.realm(targetRealm);
+    private void createClient(RealmResource realmResource) {
         ClientRepresentation clientRepresentation = new ClientRepresentation();
         clientRepresentation.setClientId(targetClientId);
         clientRepresentation.setPublicClient(true);
@@ -207,7 +285,6 @@ public class KeycloakConfig {
         credential.setType(CredentialRepresentation.PASSWORD);
         credential.setValue(defaultUsername);
         credential.setTemporary(false);
-
         defaultUser.setCredentials(List.of(credential));
 
         Response response = usersResource.create(defaultUser);
@@ -226,5 +303,55 @@ public class KeycloakConfig {
                 .filter(Objects::nonNull).toList();
 
         usersResource.get(userId).roles().realmLevel().add(roles);
+    }
+
+    private void ensurePredefinedRolesExist(RolesResource rolesResource) {
+        log.info("Ensuring predefined roles exist...");
+        for (PredefinedRolesConfig.RoleConfig roleConfig : rolesConfig.getRoles()) {
+            ensureRoleExists(rolesResource, roleConfig.getName(), roleConfig.getDescription(), false);
+        }
+        for (PredefinedRolesConfig.CompositeRoleConfig compositeConfig : rolesConfig.getCompositeRoles()) {
+            ensureCompositeRoleExists(rolesResource, compositeConfig);
+        }
+    }
+
+    private void ensureRoleExists(RolesResource rolesResource, String roleName, String description, boolean isComposite) {
+        try {
+            rolesResource.get(roleName).toRepresentation();
+            log.debug("Role '{}' already exists", roleName);
+        } catch (NotFoundException e) {
+            log.info("Creating role '{}'...", roleName);
+            RoleRepresentation role = new RoleRepresentation();
+            role.setName(roleName);
+            role.setDescription(description);
+            role.setComposite(isComposite);
+            rolesResource.create(role);
+        }
+    }
+
+    private void ensureCompositeRoleExists(RolesResource rolesResource, PredefinedRolesConfig.CompositeRoleConfig config) {
+        ensureRoleExists(rolesResource, config.getName(), config.getDescription(), true);
+        try {
+            RoleResource compositeRole = rolesResource.get(config.getName());
+            Set<String> existingComposites = compositeRole.getRoleComposites().stream().map(RoleRepresentation::getName).collect(Collectors.toSet());
+            List<RoleRepresentation> rolesToAdd = config.getIncludedRoles().stream()
+                    .filter(roleName -> !existingComposites.contains(roleName))
+                    .map(roleName -> {
+                        try {
+                            return rolesResource.get(roleName).toRepresentation();
+                        } catch (NotFoundException e) {
+                            log.warn("Role '{}' not found for composite role '{}'", roleName, config.getName());
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+            if (!rolesToAdd.isEmpty()) {
+                compositeRole.addComposites(rolesToAdd);
+                log.info("Added {} roles to composite role '{}'", rolesToAdd.size(), config.getName());
+            }
+        } catch (NotFoundException e) {
+            log.error("Composite role '{}' not found after creation", config.getName());
+        }
     }
 }

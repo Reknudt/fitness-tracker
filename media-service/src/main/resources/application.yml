@@ -22,14 +22,18 @@ minio:
 
 keycloak:
   server-url: http://localhost:8089
+#  server-url: https://sc-map-test.softclub.by:7891/auth
   realm: master
   client-id: admin-cli
   username: admin
+#  password: sh82bKpwcSds
   password: admin
-  target.realm: scassets
-  target.client-id: scassets-client
+  target.realm: scassets-test
+  target.client-id: scassets-test-client
+#  target.realm: scassets
+#  target.client-id: scassets-client
 
-  auto-create: true  # set true for role creation during program start
+  auto-create: true
   default-user:
     username: root
     email: root@gmail.com
@@ -40,10 +44,10 @@ keycloak:
   predefined-roles:
     roles:
       # About
-      - name: formula_edit
-        description: "Редактирование формулы"
-      - name: role_view
-        description: "Просмотр роли"
+#      - name: formula_edit
+#        description: "Редактирование формулы"
+#      - name: role_view
+#        description: "Просмотр роли"
       # Account
       - name: account_view
         description: "Просмотр аккаунта"
@@ -153,9 +157,14 @@ keycloak:
         description: "Редактирование складских карточек"
       - name: storage_card_doc_view
         description: "Просмотр складских карточек в документах"
+      # Role
+      - name: role_view
+        description: "Просмотр ролей"
+      - name: role_edit
+        description: "Редактирование ролей"
     # Композитные роли
     composite-roles:
-      - name: storage_manager
+      - name: STOREKEEPER
         description: "Кладовщик"
         included-roles:
           - measure_view
@@ -190,7 +199,7 @@ keycloak:
           - document_view
           - document_edit
           - operation_view
-      - name: booker
+      - name: BOOKKEEPER
         description: "Бухгалтер"
         included-roles:
           - storage_view
@@ -223,7 +232,7 @@ keycloak:
           - document_edit
           - document_process
           - operation_view
-      - name: viewer
+      - name: VIEWER
         description: "Просмотр данных"
         included-roles:
           - account_view
@@ -246,7 +255,7 @@ keycloak:
           - storage_card_view
           - document_view
           - operation_view
-      - name: directory_manager
+      - name: CATALOGER
         description: "Работа со справочниками"
         included-roles:
           - account_view
@@ -279,7 +288,7 @@ keycloak:
           - metal_edit
           - metal_group_view
           - metal_group_edit
-      - name: admin
+      - name: ADMIN
         description: "Администратор (включает все объекты)"
         included-roles:
           - account_view
@@ -326,11 +335,12 @@ keycloak:
           - storage_card_edit
           - storage_card_accountable_view
           - storage_card_doc_view
-#logging:
-#  level:
+          - role_view
+          - role_edit
+logging:
+  level:
+    org.apache.http.wire: DEBUG  # Логирует все HTTP запросы/ответы
 #    org.apache.http.impl.execchain.MainClientExec: INFO
-
-#    org.apache.http.wire: DEBUG  # Логирует все HTTP запросы/ответы
 #    org.apache.http.headers: DEBUG  # Логирует заголовки
 #    org.keycloak.admin.client: DEBUG  # Логи Keycloak клиента
 #    org.jboss.resteasy.client: DEBUG  # RESTEasy клиент

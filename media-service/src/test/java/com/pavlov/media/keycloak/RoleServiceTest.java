@@ -72,7 +72,7 @@ class RoleServiceTest {
             assertFalse(roles.isEmpty());
             assertTrue(roles.stream().anyMatch(role -> roleName.equals(role.getName())));
         } finally {
-            safeDeleteRole(roleName);
+//            safeDeleteRole(roleName);
         }
     }
 
@@ -111,7 +111,7 @@ class RoleServiceTest {
 
             RoleRequest updateRequest = new RoleRequest();
             updateRequest.setDescription("Updated description");
-            roleService.updateRole(roleName, updateRequest);
+            roleService.updateRole(updateRequest);
 
             RoleRepresentation updatedRole = roleService.getRoleByName(roleName);
             assertEquals("Updated description", updatedRole.getDescription());
@@ -211,9 +211,9 @@ class RoleServiceTest {
     void updateRole_WhenRoleNotExists_ShouldThrowException() {
         String nonExistentRole = generateUniqueRoleName("NON_EXISTENT_UPDATE");
         RoleRequest updateRequest = new RoleRequest();
-        updateRequest.setDescription("Some description");
+        updateRequest.setName(nonExistentRole);
 
-        assertThrows(RuntimeException.class, () -> roleService.updateRole(nonExistentRole, updateRequest));
+        assertThrows(RuntimeException.class, () -> roleService.updateRole(updateRequest));
     }
 
     @Test
@@ -279,8 +279,9 @@ class RoleServiceTest {
             // Update request with attributes
             RoleRequest updateRequest = new RoleRequest();
             updateRequest.setAttributes(Map.of("updatedField", List.of("newValue"), "category", List.of("premium")));
+            updateRequest.setName(roleName);
 
-            roleService.updateRole(roleName, updateRequest);
+            roleService.updateRole(updateRequest);
 
             RoleRepresentation updatedRole = roleService.getRoleByName(roleName);
             assertNotNull(updatedRole.getAttributes());

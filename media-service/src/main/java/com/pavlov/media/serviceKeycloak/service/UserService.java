@@ -80,7 +80,7 @@ public class UserService {
 
     public UserRepresentation getUserByUsername(String username) {      //todo return UserRequest
         try {
-            List<UserRepresentation> users = usersResource().search(username, true);
+            List<UserRepresentation> users = usersResource().search(username);
             return users.getFirst();
         } catch (NotFoundException e) {
             log.warn("User not found by username: {}", username);
@@ -99,23 +99,42 @@ public class UserService {
 //                return response;
 //            }
 //                throw new ResponseStatusException(response.getStatus(), "User " + newUser.getUsername() + " already exists ?");
+
+
             return response;    // return 201, 406 if username is used, 400 if username absence
         }
     }
 
-    public void updateUser(String userId, UserRequest request) {
+    public void updateUser(UserRequest request) {
         try {
-            UserResource userResource = usersResource().get(userId);
+            UserResource userResource = usersResource().get(request.getId());
             UserRepresentation user = userResource.toRepresentation();
+//            UserRepresentation user = usersResource().search(request.getUsername()).getFirst();
             if (request.getEmail() != null)
                 user.setEmail(request.getEmail());
             if (request.getAttributes() != null)
                 user.setAttributes(request.getAttributes());
             userResource.update(user);
         } catch (NotFoundException e) {
-            log.warn("User not found for update: {}", userId);
-            throw new ResponseStatusException(NOT_FOUND, "User " + userId + " not found");
+            log.warn("User not found for update: {}", request.getId());
+            throw new ResponseStatusException(NOT_FOUND, "User " + request.getId() + " not found");
         }
+    }
+
+    public void setCredentials(String id, String password) {
+        UserResource userResource = usersResource().get(id);
+        UserRepresentation user = userResource.toRepresentation();
+
+//        CredentialRepresentation oldCreds = user.getCredentials();
+
+        CredentialRepresentation credential = new CredentialRepresentation();
+        credential.setType(CredentialRepresentation.PASSWORD);
+
+        credential.setValue(password);
+        credential.setTemporary(false);
+        user.setCredentials(List.of(credential));
+        userResource.resetPassword(credential);
+//        userResource.update(user);
     }
 
     public void setUserEnabled(String userId, boolean enabled) {
@@ -130,18 +149,18 @@ public class UserService {
         }
     }
 
-    public void assignRoleToUser(String userId, String roleName) {
-        try {
-            UserResource userResource = usersResource().get(userId);
-            RoleRepresentation role = rolesResource().get(roleName).toRepresentation();
-            userResource.roles().realmLevel().add(List.of(role));
-        } catch (NotFoundException e) {
-            log.warn("User or role not found for assignment. User: {}, Role: {}", userId, roleName);
-            throw new ResponseStatusException(NOT_FOUND, "User or role not found for assignment. User: " + userId + " , Role: " + roleName);
-        }
-    }
+//    public void assignRoleToUser(String userId, String roleName) {
+//        try {
+//            UserResource userResource = usersResource().get(userId);
+//            RoleRepresentation role = rolesResource().get(roleName).toRepresentation();
+//            userResource.roles().realmLevel().add(List.of(role));
+//        } catch (NotFoundException e) {
+//            log.warn("User or role not found for assignment. User: {}, Role: {}", userId, roleName);
+//            throw new ResponseStatusException(NOT_FOUND, "User or role not found for assignment. User: " + userId + " , Role: " + roleName);
+//        }
+//    }
 
-    public void assignRoleToUser(String userId, List<String> roleNames) {
+    public void assignRolesToUser(String userId, List<String> roleNames) {
         try {
             UserResource userResource = usersResource().get(userId);
             List<RoleRepresentation> roles = new ArrayList<>(List.of());
@@ -160,18 +179,18 @@ public class UserService {
         }
     }
 
-    public void removeRoleFromUser(String userId, String roleName) {
-        try {
-            UserResource userResource = usersResource().get(userId);
-            RoleRepresentation role = rolesResource().get(roleName).toRepresentation();
-            userResource.roles().realmLevel().remove(List.of(role));
-        } catch (NotFoundException e) {
-            log.warn("User not found for unassignment. User: {}, Role: {}", userId, roleName);
-            throw new ResponseStatusException(NOT_FOUND, "User " + userId + " not found");
-        }
-    }
+//    public void removeRoleFromUser(String userId, String roleName) {
+//        try {
+//            UserResource userResource = usersResource().get(userId);
+//            RoleRepresentation role = rolesResource().get(roleName).toRepresentation();
+//            userResource.roles().realmLevel().remove(List.of(role));
+//        } catch (NotFoundException e) {
+//            log.warn("User not found for unassignment. User: {}, Role: {}", userId, roleName);
+//            throw new ResponseStatusException(NOT_FOUND, "User " + userId + " not found");
+//        }
+//    }
 
-    public void removeRoleFromUser(String userId, List<String> roleNames) {
+    public void removeRolesFromUser(String userId, List<String> roleNames) {
         try {
             UserResource userResource = usersResource().get(userId);
             List<RoleRepresentation> roles = new ArrayList<>(List.of());

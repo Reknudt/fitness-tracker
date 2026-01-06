@@ -177,9 +177,9 @@ public class RoleService {
             addCompositeRoles(request.getName(), request.getCompositeRoles());
     }
 
-    public void updateRole(String roleName, RoleRequest request) {
+    public void updateRole(RoleRequest request) {
         try {
-            RoleResource roleResource = rolesResource().get(roleName);
+            RoleResource roleResource = rolesResource().get(request.getName());
             RoleRepresentation role = roleResource.toRepresentation();
             if (request.getDescription() != null)
                 role.setDescription(request.getDescription());
@@ -188,10 +188,10 @@ public class RoleService {
             roleResource.update(role);
 
             if (request.getCompositeRoles() != null)
-                updateCompositeRoles(roleName, request.getCompositeRoles());
+                updateCompositeRoles(request.getName(), request.getCompositeRoles());
         } catch (NotFoundException e) {
-            log.warn("Role not found for update: {}", roleName);
-            throw new ResponseStatusException(NOT_FOUND, "Role not found: " + roleName);
+            log.warn("Role not found for update: {}", request.getName());
+            throw new ResponseStatusException(NOT_FOUND, "Role not found: " + request.getName());
         }
     }
 

@@ -1,21 +1,21 @@
-keycloak:
-  server-url: http://localhost:${keycloak.port:8080}
-  realm: master
-  client-id: admin-cli
-  username: admin
-  password: admin
-  target-realm: scassets
-
-  predefined-roles:
-    auto-create: false
-    roles:
-      - name: TEST_ROLE_1
-        description: Test role 1
-      - name: TEST_ROLE_2
-        description: Test role 2
-    composite-roles:
-      - name: TEST_MANAGER
-        description: Менеджер test
-        included-roles:
-          - TEST_ROLE_1
-          - TEST_ROLE_2
+#keycloak:
+#  server-url: http://localhost:${keycloak.port:8080}
+#  realm: master
+#  client-id: admin-cli
+#  username: admin
+#  password: admin
+#  target-realm: scassets
+#
+#  predefined-roles:
+#    auto-create: false
+#    roles:
+#      - name: TEST_ROLE_1
+#        description: Test role 1
+#      - name: TEST_ROLE_2
+#        description: Test role 2
+#    composite-roles:
+#      - name: TEST_MANAGER
+#        description: Менеджер test
+#        included-roles:
+#          - TEST_ROLE_1
+#          - TEST_ROLE_2

@@ -83,6 +83,8 @@ class UserServiceTest {
         try (Response response = userService.deleteUser(userId + "123")) {
             assertEquals(Response.Status.NOT_FOUND.getStatusCode(), response.getStatus());
         }
+
+        userService.setCredentials(userId, "password");
     }
 
     @Test
@@ -190,10 +192,10 @@ class UserServiceTest {
         String roleName = "booker";
 
         UserRequest userRequest = new UserRequest();
-//        userRequest.setUsername(username);
+        userRequest.setUsername(username);
 //        userRequest.setEmail(username + "@example.com");
 //        userRequest.setAttributes(Map.of("fullname", List.of("fullname test assign")));
-//        String userId = userService.createUser(userRequest);
+        /*String userId = */userService.createUser(userRequest);
 
 //        RoleRequest roleRequest = new RoleRequest();
 //        roleRequest.setName(roleName);
@@ -202,11 +204,14 @@ class UserServiceTest {
 
         try {
             String userId = userService.getUserByUsername(username).getId();
-            userService.assignRoleToUser(userId, roleName);
+            userService.assignRolesToUser(userId, List.of(roleName));
 
             List<RoleRepresentation> userRoles = userService.getUserRoles(userId);
             assertFalse(userRoles.isEmpty());
             assertTrue(userRoles.stream().anyMatch(role -> roleName.equals(role.getName())));
+
+            userService.assignRolesToUser(userId, List.of("admin", "car_view"));
+
 
 //            userService.removeRoleFromUser(userId, roleName);
 
@@ -242,13 +247,13 @@ class UserServiceTest {
 
         try {
 //            String userId = userService.getUserByUsername(username).getId();
-            userService.assignRoleToUser(userId, roleNames);
+            userService.assignRolesToUser(userId, roleNames);
 
             List<RoleRepresentation> userRoles = userService.getUserRoles(userId);
             assertFalse(userRoles.isEmpty());
             assertTrue(userRoles.stream().anyMatch(role -> roleNames.getFirst().equals(role.getName())));
 
-            userService.removeRoleFromUser(userId, roleNames);
+            userService.removeRolesFromUser(userId, roleNames);
 
             userRoles = userService.getUserRoles(userId);
             assertFalse(userRoles.stream().anyMatch(role -> roleNames.getFirst().equals(role.getName())));
@@ -312,7 +317,7 @@ class UserServiceTest {
 //            updateRequest.setLastName("Name");
             updateRequest.setAttributes(Map.of("fullname", List.of("new fullname")));
 
-            userService.updateUser(userId, updateRequest);
+            userService.updateUser(updateRequest);
 
             UserRepresentation updatedUser = userService.getUserById(userId);
             assertEquals("new@example.com", updatedUser.getEmail());

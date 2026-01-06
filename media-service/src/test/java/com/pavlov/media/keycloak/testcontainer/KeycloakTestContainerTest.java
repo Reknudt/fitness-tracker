@@ -70,7 +70,6 @@ public class KeycloakTestContainerTest {
     @Test
     void initTest() {
         assertTrue(keycloakSetupService.realmExists());
-
     }
 
     @Test
