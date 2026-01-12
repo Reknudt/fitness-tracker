@@ -8,6 +8,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 
 @RequiredArgsConstructor
 @RestController
@@ -26,6 +28,11 @@ import java.io.InputStream;
 public class MediaController {
 
     private final MediaService mediaService;
+
+    @GetMapping
+    public List<Media> getAll() {
+        return mediaService.findAll();
+    }
 
     @GetMapping("/{id}")
     public String readFileById(@PathVariable long id) {
@@ -50,9 +57,15 @@ public class MediaController {
 
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Media uploadFileToMinIO(@RequestParam("file") MultipartFile file) throws IOException {
+    public Media uploadToMinIO(@RequestParam("file") MultipartFile file) throws IOException {
         long userId = 1;    //todo change after user-service integration
         return mediaService.saveFile(userId, file);
+    }
+
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        mediaService.removeFile(id);
     }
 
 }
