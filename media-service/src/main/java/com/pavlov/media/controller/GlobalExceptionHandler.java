@@ -13,7 +13,7 @@ import java.time.Instant;
 
 @Slf4j
 @RestControllerAdvice
-public class GlobalExceptionHandler {
+public class GlobalExceptionHandler /*extends ResponseEntityExceptionHandler*/ {
 
     @ExceptionHandler(MediaNotFoundException.class)
     public ResponseEntity<ApiError> handleNotFound(MediaNotFoundException ex) {
@@ -46,4 +46,13 @@ public class GlobalExceptionHandler {
                         Instant.now()
                 ));
     }
+
+//    @Override
+//    protected ResponseEntity<Object> handleMethodArgumentNotValid(@NonNull MethodArgumentNotValidException ex, @NonNull HttpHeaders headers, @NonNull HttpStatusCode status, @NonNull WebRequest request) {
+//        ProblemDetail problemDetail =  ex.getBody();
+//        Map<String, Object> errors = new LinkedHashMap<>();
+//        ex.getFieldErrors().forEach(fieldError -> errors.put(fieldError.getField(), fieldError.getDefaultMessage()));
+//        problemDetail.setProperty("issues", errors);
+//        return new ResponseEntity<>(problemDetail, headers, status);
+//    }
 }
