@@ -1,6 +1,6 @@
 services:
   workout-db:
-    image: postgres:16
+    image: postgres:18
     container_name: workout-db
     restart: always
     environment:
@@ -10,10 +10,10 @@ services:
     ports:
       - "5441:5432"
     volumes:
-      - workout_data:/var/lib/postgresql/data
+      - workout_data:/var/lib/postgresql
 
   media-db:
-    image: postgres:16
+    image: postgres:18
     container_name: media-db
     restart: always
     environment:
@@ -23,7 +23,20 @@ services:
     ports:
       - "5442:5432"
     volumes:
-      - media_data:/var/lib/postgresql/data
+      - media_data:/var/lib/postgresql
+
+  user-db:
+    image: postgres:18
+    container_name: user-db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: user
+      POSTGRES_DB: user_db
+    ports:
+      - "5443:5432"
+    volumes:
+      - user_data:/var/lib/postgresql
 
   workout-service:
     build:
@@ -60,6 +73,21 @@ services:
       SPRING_DATASOURCE_PASSWORD: media
       SPRING_FLYWAY_ENABLED: "true"
 
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    ports:
+      - "8093:8093"
+    container_name: user-service
+    depends_on:
+      - user-db
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://user-db:5432/user_db
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: user
+      SPRING_FLYWAY_ENABLED: "true"
+
   minio:
     image: minio/minio
     container_name: minio
@@ -76,4 +104,5 @@ services:
 volumes:
   workout_data:
   media_data:
+  user_data:
   minio_data:
