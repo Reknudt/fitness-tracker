@@ -1,9 +1,11 @@
 package com.pavlov.user.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -19,10 +21,15 @@ import java.time.LocalDate;
 @Getter
 @Entity
 @NoArgsConstructor
-public class User {
+@Table(name = "consumer")
+public class Consumer {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @NotBlank
+    @Size(max = 63)
+    String username;
 
     @NotBlank
     @Size(max = 63)
@@ -32,13 +39,10 @@ public class User {
     @Size(max = 63)
     String passwordHash;
 
-    @NotBlank
-    @Size(max = 63)
-    String username;
-
     LocalDate birthDate;
 
     @NotNull
+    @Column(insertable = false, updatable = false)
     LocalDate joinedOn = LocalDate.now();
 
     @Positive
